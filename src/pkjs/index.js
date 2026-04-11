@@ -445,8 +445,8 @@ function hasResolvedDeviceCaps() {
 
 function defaultTileColors(bw) {
   return bw ?
-    [[BW_BLACK, BW_WHITE], [BW_BLACK, BW_WHITE], [BW_LIGHT_GRAY, BW_BLACK],
-     [BW_LIGHT_GRAY, BW_BLACK], [BW_WHITE, BW_BLACK], [BW_BLACK, BW_WHITE],
+    [[BW_BLACK, BW_WHITE], [BW_WHITE, BW_BLACK], [BW_LIGHT_GRAY, BW_BLACK],
+     [BW_WHITE, BW_BLACK], [BW_WHITE, BW_BLACK], [BW_BLACK, BW_WHITE],
      [BW_WHITE, BW_BLACK], [BW_WHITE, BW_BLACK], [BW_BLACK, BW_WHITE],
      [BW_LIGHT_GRAY, BW_BLACK], [BW_BLACK, BW_WHITE]] :
     [[0xC0, 0xFF], [0xE2, 0xFF], [0xE1, 0xFF],

@@ -199,15 +199,15 @@ static void prv_set_tile_defaults(TileConfig *tile, TileType type) {
 
   switch (type) {
     case TILE_TIME:
-      tile->bg = PBL_IF_COLOR_ELSE((GColor){ .argb = 0xE2 }, GColorBlack).argb;
-      tile->fg = GColorWhite.argb;
+      tile->bg = PBL_IF_COLOR_ELSE((GColor){ .argb = 0xE2 }, GColorWhite).argb;
+      tile->fg = PBL_IF_COLOR_ELSE(GColorWhite, GColorBlack).argb;
       break;
     case TILE_DATE:
       tile->bg = PBL_IF_COLOR_ELSE((GColor){ .argb = 0xE1 }, GColorLightGray).argb;
       tile->fg = PBL_IF_COLOR_ELSE(GColorWhite, GColorBlack).argb;
       break;
     case TILE_DAY:
-      tile->bg = PBL_IF_COLOR_ELSE((GColor){ .argb = 0xC2 }, GColorLightGray).argb;
+      tile->bg = PBL_IF_COLOR_ELSE((GColor){ .argb = 0xC2 }, GColorWhite).argb;
       tile->fg = PBL_IF_COLOR_ELSE(GColorWhite, GColorBlack).argb;
       break;
     case TILE_YEAR:
