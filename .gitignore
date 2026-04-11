@@ -1,0 +1,6 @@
+.idea/
+.codex/
+.claude/
+cmake-build-debug
+.lock-waf_linux_build
+build/

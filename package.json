@@ -1,0 +1,86 @@
+{
+  "name": "metrotile",
+  "author": "MakeAwesomeHappen",
+  "version": "1.0.0",
+  "keywords": [
+    "pebble-app"
+  ],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "MetroTile",
+    "uuid": "4a7c6f13-2b1d-4b8a-9e63-6d7f2c51a4b2",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "targetPlatforms": [
+      "aplite",
+      "basalt",
+      "chalk",
+      "diorite",
+      "emery",
+      "flint",
+      "gabbro"
+    ],
+    "watchapp": {
+      "watchface": true
+    },
+    "capabilities": [
+      "location",
+      "health",
+      "configurable"
+    ],
+    "messageKeys": [
+      "TILE0_TYPE",
+      "TILE0_BG",
+      "TILE0_FG",
+      "TILE1_TYPE",
+      "TILE1_BG",
+      "TILE1_FG",
+      "TILE2_TYPE",
+      "TILE2_BG",
+      "TILE2_FG",
+      "TILE3_TYPE",
+      "TILE3_BG",
+      "TILE3_FG",
+      "TILE4_TYPE",
+      "TILE4_BG",
+      "TILE4_FG",
+      "TILE5_TYPE",
+      "TILE5_BG",
+      "TILE5_FG",
+      "TEMPERATURE",
+      "CONDITIONS",
+      "REQUEST_WEATHER",
+      "DATE_FORMAT",
+      "TEMP_UNIT",
+      "BLUETOOTH_DISCONNECT_VIBE",
+      "DEVICE_IS_BW",
+      "DEVICE_HAS_HR",
+      "REQUEST_DEVICE_CAPS"
+    ],
+    "resources": {
+      "media": [
+        {
+          "type": "bitmap",
+          "name": "ICON_UMBRELLA",
+          "file": "images/umbrella.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_UMBRELLA_WHITE",
+          "file": "images/umbrella_white.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_BLUETOOTH",
+          "file": "images/bluetooth.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_BLUETOOTH_WHITE",
+          "file": "images/bluetooth_white.png"
+        }
+      ]
+    }
+  }
+}
