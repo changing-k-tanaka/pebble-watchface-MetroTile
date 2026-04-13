@@ -1,11 +1,13 @@
 {
   "name": "metrotile",
-  "author": "MakeAwesomeHappen",
+  "author": "changing-k-tanaka",
   "version": "1.0.1",
   "keywords": [
-    "pebble-app"
+    "metrotile",
+    "metro",
+    "tile"
   ],
-  "private": true,
+  "private": false,
   "dependencies": {},
   "pebble": {
     "displayName": "MetroTile",
