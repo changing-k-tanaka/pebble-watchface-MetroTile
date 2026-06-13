@@ -4,3 +4,4 @@
 cmake-build-debug
 .lock-waf_linux_build
 build/
+.history/
