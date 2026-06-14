@@ -154,83 +154,13 @@
         },
         {
           "type": "bitmap",
-          "name": "ICON_WEATHER_SUNNY",
-          "file": "images/icon/weather/sunny.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "ICON_WEATHER_PARTLY_CLOUDY",
-          "file": "images/icon/weather/partly_cloudy.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "ICON_WEATHER_CLOUDY",
-          "file": "images/icon/weather/cloudy.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "ICON_WEATHER_FOGGY",
-          "file": "images/icon/weather/foggy.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "ICON_WEATHER_RAINY",
-          "file": "images/icon/weather/rainy.png"
-        },
-        {
-          "type": "bitmap",
           "name": "ICON_WEATHER_CLOUD_FALLING",
           "file": "images/icon/weather/cloud_falling.png"
         },
         {
           "type": "bitmap",
-          "name": "ICON_WEATHER_SNOWY",
-          "file": "images/icon/weather/snowy.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "ICON_WEATHER_THUNDERY",
-          "file": "images/icon/weather/thundery.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "ICON_WEATHER_SUNNY_BLACK",
-          "file": "images/icon_black/weather/sunny.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "ICON_WEATHER_PARTLY_CLOUDY_BLACK",
-          "file": "images/icon_black/weather/partly_cloudy.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "ICON_WEATHER_CLOUDY_BLACK",
-          "file": "images/icon_black/weather/cloudy.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "ICON_WEATHER_FOGGY_BLACK",
-          "file": "images/icon_black/weather/foggy.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "ICON_WEATHER_RAINY_BLACK",
-          "file": "images/icon_black/weather/rainy.png"
-        },
-        {
-          "type": "bitmap",
           "name": "ICON_WEATHER_CLOUD_FALLING_BLACK",
           "file": "images/icon_black/weather/cloud_falling.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "ICON_WEATHER_SNOWY_BLACK",
-          "file": "images/icon_black/weather/snowy.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "ICON_WEATHER_THUNDERY_BLACK",
-          "file": "images/icon_black/weather/thundery.png"
         },
         {
           "type": "bitmap",

@@ -167,7 +167,7 @@ var DEFAULT_SETTINGS = {
     { type: 8, bg: 0xF4, fg: 0xFF },
     { type: 9, bg: 0xCB, fg: 0xFF }
   ],
-  dateFormat: 0,  // 0=MM/DD, 1=DD/MM, 2=MM月DD日
+  dateFormat: 0,  // 0=MM/DD, 1=DD/MM
   tempUnit:   0,  // 0=Celsius, 1=Fahrenheit
   bluetoothDisconnectVibe: false,
   weatherCity: '', // blank = current location
@@ -455,7 +455,7 @@ function defaultTileColors(bw) {
      [0xCB, 0xFF], [0xC9, 0xFF], [0xCF, 0xC0]];
 }
 
-function defaultTileTypes(hrDevice) {
+function defaultTileTypes() {
   return [3, 10, 2, 1, 8, 9];
 }
 
@@ -537,7 +537,7 @@ function normalizeSettings(raw) {
   var bw = isBW();
   var hrDevice = hasHR();
   var colors = defaultTileColors(bw);
-  var types = defaultTileTypes(hrDevice);
+  var types = defaultTileTypes();
   var out = {
     tiles: [],
     dateFormat: 0,
@@ -1146,7 +1146,6 @@ Pebble.addEventListener('webviewclosed', function(e) {
       msg['TILE' + i + '_FG']   = tile.fg;
     }
     var df = settings.dateFormat || 0;
-    if (df === 2) df = 0;  // MM月DD日 was removed; fall back to MM/DD
     msg['DATE_FORMAT'] = df;
     msg['TEMP_UNIT']   = settings.tempUnit   || 0;
     msg['BLUETOOTH_DISCONNECT_VIBE'] = settings.bluetoothDisconnectVibe ? 1 : 0;

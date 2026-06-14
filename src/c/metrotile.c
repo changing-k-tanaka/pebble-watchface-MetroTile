@@ -53,7 +53,7 @@ typedef struct __attribute__((packed)) {
 typedef struct __attribute__((packed)) {
   uint8_t    version;
   TileConfig tiles[NUM_TILES];
-  uint8_t    date_format;  // 0=MM/DD, 1=DD/MM, 2=MM月DD日
+  uint8_t    date_format;  // 0=MM/DD, 1=DD/MM
   uint8_t    temp_unit;    // 0=Celsius, 1=Fahrenheit
   uint8_t    bluetooth_disconnect_vibe;  // 0=OFF, 1=ON
 } Settings;  // 1 + 6*3 + 3 = 22 bytes
@@ -131,20 +131,6 @@ static GBitmap     *s_battery_charging_full_black;
 static GBitmap     *s_battery_charging_full_white;
 static GBitmap     *s_weather_cloud_falling_black;
 static GBitmap     *s_weather_cloud_falling_white;
-static GBitmap     *s_weather_cloudy_black;
-static GBitmap     *s_weather_cloudy_white;
-static GBitmap     *s_weather_foggy_black;
-static GBitmap     *s_weather_foggy_white;
-static GBitmap     *s_weather_partly_cloudy_black;
-static GBitmap     *s_weather_partly_cloudy_white;
-static GBitmap     *s_weather_rainy_black;
-static GBitmap     *s_weather_rainy_white;
-static GBitmap     *s_weather_snowy_black;
-static GBitmap     *s_weather_snowy_white;
-static GBitmap     *s_weather_sunny_black;
-static GBitmap     *s_weather_sunny_white;
-static GBitmap     *s_weather_thundery_black;
-static GBitmap     *s_weather_thundery_white;
 static GBitmap     *s_weather_2x_cloud_falling_black;
 static GBitmap     *s_weather_2x_cloud_falling_white;
 static GBitmap     *s_weather_2x_cloudy_black;
@@ -936,10 +922,6 @@ static void prv_tile_value(uint8_t type, char *buf, size_t buf_size) {
         case 1:  // DD/MM
           strftime(buf, buf_size, "%d/%m", t);
           break;
-        case 2:  // MM月DD日
-          snprintf(buf, buf_size, "%d\xe6\x9c\x88%d\xe6\x97\xa5",
-                   t->tm_mon + 1, t->tm_mday);
-          break;
         default:  // 0 = MM/DD
           strftime(buf, buf_size, "%m/%d", t);
           break;
@@ -1586,34 +1568,6 @@ static void prv_window_load(Window *window) {
       gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_CLOUD_FALLING_BLACK);
   s_weather_cloud_falling_white =
       gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_CLOUD_FALLING);
-  s_weather_cloudy_black =
-      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_CLOUDY_BLACK);
-  s_weather_cloudy_white =
-      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_CLOUDY);
-  s_weather_foggy_black =
-      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_FOGGY_BLACK);
-  s_weather_foggy_white =
-      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_FOGGY);
-  s_weather_partly_cloudy_black =
-      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_PARTLY_CLOUDY_BLACK);
-  s_weather_partly_cloudy_white =
-      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_PARTLY_CLOUDY);
-  s_weather_rainy_black =
-      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_RAINY_BLACK);
-  s_weather_rainy_white =
-      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_RAINY);
-  s_weather_snowy_black =
-      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_SNOWY_BLACK);
-  s_weather_snowy_white =
-      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_SNOWY);
-  s_weather_sunny_black =
-      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_SUNNY_BLACK);
-  s_weather_sunny_white =
-      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_SUNNY);
-  s_weather_thundery_black =
-      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_THUNDERY_BLACK);
-  s_weather_thundery_white =
-      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_THUNDERY);
   s_weather_2x_cloud_falling_black =
       gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_2X_CLOUD_FALLING_BLACK);
   s_weather_2x_cloud_falling_white =
@@ -1732,62 +1686,6 @@ static void prv_window_unload(Window *window) {
   if (s_weather_cloud_falling_white) {
     gbitmap_destroy(s_weather_cloud_falling_white);
     s_weather_cloud_falling_white = NULL;
-  }
-  if (s_weather_cloudy_black) {
-    gbitmap_destroy(s_weather_cloudy_black);
-    s_weather_cloudy_black = NULL;
-  }
-  if (s_weather_cloudy_white) {
-    gbitmap_destroy(s_weather_cloudy_white);
-    s_weather_cloudy_white = NULL;
-  }
-  if (s_weather_foggy_black) {
-    gbitmap_destroy(s_weather_foggy_black);
-    s_weather_foggy_black = NULL;
-  }
-  if (s_weather_foggy_white) {
-    gbitmap_destroy(s_weather_foggy_white);
-    s_weather_foggy_white = NULL;
-  }
-  if (s_weather_partly_cloudy_black) {
-    gbitmap_destroy(s_weather_partly_cloudy_black);
-    s_weather_partly_cloudy_black = NULL;
-  }
-  if (s_weather_partly_cloudy_white) {
-    gbitmap_destroy(s_weather_partly_cloudy_white);
-    s_weather_partly_cloudy_white = NULL;
-  }
-  if (s_weather_rainy_black) {
-    gbitmap_destroy(s_weather_rainy_black);
-    s_weather_rainy_black = NULL;
-  }
-  if (s_weather_rainy_white) {
-    gbitmap_destroy(s_weather_rainy_white);
-    s_weather_rainy_white = NULL;
-  }
-  if (s_weather_snowy_black) {
-    gbitmap_destroy(s_weather_snowy_black);
-    s_weather_snowy_black = NULL;
-  }
-  if (s_weather_snowy_white) {
-    gbitmap_destroy(s_weather_snowy_white);
-    s_weather_snowy_white = NULL;
-  }
-  if (s_weather_sunny_black) {
-    gbitmap_destroy(s_weather_sunny_black);
-    s_weather_sunny_black = NULL;
-  }
-  if (s_weather_sunny_white) {
-    gbitmap_destroy(s_weather_sunny_white);
-    s_weather_sunny_white = NULL;
-  }
-  if (s_weather_thundery_black) {
-    gbitmap_destroy(s_weather_thundery_black);
-    s_weather_thundery_black = NULL;
-  }
-  if (s_weather_thundery_white) {
-    gbitmap_destroy(s_weather_thundery_white);
-    s_weather_thundery_white = NULL;
   }
   if (s_weather_2x_cloud_falling_black) {
     gbitmap_destroy(s_weather_2x_cloud_falling_black);
