@@ -156,7 +156,7 @@ function fetchWeather() {
 // ============================================================================
 
 var SETTINGS_KEY = 'metro_ui_settings';
-var SETTINGS_JS_VERSION = 2;
+var SETTINGS_JS_VERSION = 6;
 
 var DEFAULT_SETTINGS = {
   tiles: [
@@ -448,11 +448,11 @@ function defaultTileColors(bw) {
     [[BW_BLACK, BW_WHITE], [BW_WHITE, BW_BLACK], [BW_LIGHT_GRAY, BW_BLACK],
      [BW_WHITE, BW_BLACK], [BW_WHITE, BW_BLACK], [BW_BLACK, BW_WHITE],
      [BW_WHITE, BW_BLACK], [BW_WHITE, BW_BLACK], [BW_BLACK, BW_WHITE],
-     [BW_LIGHT_GRAY, BW_BLACK], [BW_BLACK, BW_WHITE]] :
+     [BW_LIGHT_GRAY, BW_BLACK], [BW_BLACK, BW_WHITE], [BW_WHITE, BW_BLACK]] :
     [[0xC0, 0xFF], [0xE2, 0xFF], [0xE1, 0xFF],
      [0xC2, 0xFF], [0xC3, 0xFF], [0xCC, 0xFF],
      [0xFC, 0xC0], [0xCF, 0xC0], [0xF4, 0xFF],
-     [0xCB, 0xFF], [0xC9, 0xFF]];
+     [0xCB, 0xFF], [0xC9, 0xFF], [0xCF, 0xC0]];
 }
 
 function defaultTileTypes(hrDevice) {
@@ -550,7 +550,7 @@ function normalizeSettings(raw) {
   for (var i = 0; i < 6; i++) {
     var src = raw && raw.tiles && raw.tiles[i] ? raw.tiles[i] : {};
     var type = +src.type;
-    if (!(type >= 0 && type <= 10)) type = types[i];
+    if (!(type >= 0 && type <= 11)) type = types[i];
     if (!hrDevice && type === 5) type = 8;
 
     var fallback = colors[type];
@@ -618,8 +618,8 @@ function loadSettings() {
   try {
     var raw = localStorage.getItem(SETTINGS_KEY);
     var parsed = raw ? JSON.parse(raw) : null;
-    // バージョンが一致しない古いデータはデフォルトにリセットする
-    if (parsed && parsed.jsVersion !== SETTINGS_JS_VERSION) {
+    // 未来バージョンのみ安全のため破棄し、旧バージョンは normalize で移行する
+    if (parsed && parsed.jsVersion > SETTINGS_JS_VERSION) {
       parsed = null;
     }
     settings = normalizeSettings(parsed);
@@ -667,7 +667,7 @@ function applyPresetToSettings(settings, bw, presetId) {
 // CONFIG PAGE HTML BUILDER
 // ============================================================================
 
-var TILE_TYPE_NAMES = ['None','Time','Date','Day of Week','Year','Heart Rate','Steps','Weather','Battery','Temperature','Precipitation'];
+var TILE_TYPE_NAMES = ['None','Time','Date','Day of Week','Year','Heart Rate','Steps','Weather','Battery','Temperature','Precipitation','Weather(icon)'];
 
 // Detect B&W watch (aplite / diorite)
 function isBW() {
@@ -717,7 +717,7 @@ function buildConfigHTML(settings) {
   h.push('<title>Metro Settings</title>');
   h.push('<style>');
   h.push('*{box-sizing:border-box;margin:0;padding:0}');
-  h.push('body{background:#1a1a1a;color:#fff;font-family:sans-serif;font-size:14px;padding:12px}');
+  h.push('body{background:#1a1a1a;color:#fff;font-family:sans-serif;font-size:14px;padding:12px 12px 76px}');
   h.push('h1{font-size:18px;margin-bottom:14px;color:#0078d7}');
   h.push('.tile{border:1px solid #333;border-radius:4px;padding:10px;margin-bottom:10px}');
   h.push('.tt{font-size:13px;font-weight:bold;color:#aaa;margin-bottom:8px}');
@@ -730,12 +730,12 @@ function buildConfigHTML(settings) {
   h.push('select{width:100%;background:#2a2a2a;color:#fff;border:1px solid #555;padding:6px;border-radius:3px;margin-bottom:10px;font-size:13px}');
   h.push('input{width:100%;background:#2a2a2a;color:#fff;border:1px solid #555;padding:8px;border-radius:3px;margin-bottom:10px;font-size:13px}');
   h.push('.lbl{font-size:11px;color:#888;margin-bottom:4px}');
-  h.push('.sg{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;background:#111;padding:6px;border-radius:3px;cursor:pointer}');
-  h.push('i{display:inline-block;width:40px;height:40px;border-radius:2px;border:2px solid transparent;font-style:normal}');
+  h.push('.sg{display:flex;flex-wrap:nowrap;gap:4px;margin-bottom:10px;background:#111;padding:6px;border-radius:3px;cursor:pointer;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}');
+  h.push('i{display:inline-block;flex:0 0 auto;width:40px;height:40px;border-radius:2px;border:2px solid transparent;font-style:normal}');
   h.push('i.x{border-color:#fff}');
   h.push('.hint{font-size:12px;line-height:1.4;color:#aaa;margin-top:2px}');
   h.push('.rowbtn{width:100%;background:#444;color:#fff;border:none;padding:10px;border-radius:4px;font-size:13px;cursor:pointer;margin-bottom:8px}');
-  h.push('#sb{width:100%;background:#0078d7;color:#fff;border:none;padding:14px;border-radius:4px;font-size:16px;cursor:pointer;margin-top:8px}');
+  h.push('#sb{position:fixed;left:0;right:0;bottom:0;width:100%;background:#0078d7;color:#fff;border:none;padding:14px;font-size:16px;cursor:pointer;margin:0;border-radius:0;box-shadow:0 -2px 6px rgba(0,0,0,.4);z-index:10}');
   h.push('</style></head><body>');
   h.push('<h1>METRO UI</h1>');
 
@@ -746,8 +746,8 @@ function buildConfigHTML(settings) {
   h.push('var S=' + JSON.stringify(settings) + ';');
   h.push('var AP=' + JSON.stringify(selectedPresetId) + ';');
   h.push('var PR={};');
-  h.push('var PN=["","TIME","DATE","DOW","YEAR","BPM","STEPS","WX","BAT","TEMP","RAIN"];');
-  h.push('var PV=["","23:13","04/09","Thu","2026","72","8342","Cloudy","80%","15\\u00b0C","20%"];');
+  h.push('var PN=["","TIME","DATE","DOW","YEAR","BPM","STEPS","WX","BAT","TEMP","RAIN","WX"];');
+  h.push('var PV=["","23:13","04/09","Thu","2026","72","8342","Cloudy","\\u26A180%","15\\u00b0C","20%","\\u2601"];');
   for (var p = 0; p < presets.length; p++) {
     h.push('PR[' + JSON.stringify(presets[p].id) + ']=' + JSON.stringify(presets[p]) + ';');
   }
@@ -806,15 +806,6 @@ function buildConfigHTML(settings) {
   }
   h.push('</div>');
   h.push('<script>rp()<\/script>');
-  h.push('</div>');
-
-  h.push('<div class="tile">');
-  h.push('<div class="tt">Color JSON</div>');
-  // h.push('<div class="sub">6 タイル分の背景色・文字色がリアルタイムで JSON に反映されます。貼り付けて読み込むこともできます。</div>');
-  h.push('<textarea id="json" spellcheck="false"></textarea>');
-  h.push('<button class="rowbtn" onclick="ix()">Load Colors From JSON</button>');
-  // h.push('<div class="hint">形式: {"tiles":[{"bg":198,"fg":192}, ... ]}</div>');
-  h.push('<script>sx()<\/script>');
   h.push('</div>');
 
   h.push('<div class="tile">');
@@ -900,6 +891,15 @@ function buildConfigHTML(settings) {
 
   h.push('</div>');
 
+  h.push('<div class="tile">');
+  h.push('<div class="tt">Color JSON</div>');
+  // h.push('<div class="sub">6 タイル分の背景色・文字色がリアルタイムで JSON に反映されます。貼り付けて読み込むこともできます。</div>');
+  h.push('<textarea id="json" spellcheck="false"></textarea>');
+  h.push('<button class="rowbtn" onclick="ix()">Load Colors From JSON</button>');
+  // h.push('<div class="hint">形式: {"tiles":[{"bg":198,"fg":192}, ... ]}</div>');
+  h.push('<script>sx()<\/script>');
+  h.push('</div>');
+
   h.push('<button id="sb" onclick="save()">SAVE</button>');
   h.push('</body></html>');
 
@@ -921,7 +921,7 @@ function buildCompactConfigHTML(settings) {
   h.push('<meta name="viewport" content="width=device-width,initial-scale=1">');
   h.push('<title>Metro Settings</title>');
   h.push('<style>');
-  h.push('*{box-sizing:border-box}body{margin:0;padding:12px;background:#111;color:#fff;font-family:sans-serif;font-size:14px}h1{margin:0 0 12px;color:#0078d7;font-size:18px}.card{background:#1d1d1d;border:1px solid #333;border-radius:6px;padding:10px;margin-bottom:10px}.ttl{font-size:13px;font-weight:bold;color:#9ecfff;margin-bottom:8px}.lbl{display:block;font-size:11px;color:#aaa;margin:8px 0 4px}select,input{width:100%;padding:8px;border-radius:4px;border:1px solid #555;background:#2a2a2a;color:#fff;font-size:13px}input{margin:0}button{width:100%;padding:14px;border:0;border-radius:5px;background:#0078d7;color:#fff;font-size:16px}.hint{font-size:12px;line-height:1.45;color:#aaa;margin-top:6px}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}');
+  h.push('*{box-sizing:border-box}body{margin:0;padding:12px 12px 76px;background:#111;color:#fff;font-family:sans-serif;font-size:14px}h1{margin:0 0 12px;color:#0078d7;font-size:18px}.card{background:#1d1d1d;border:1px solid #333;border-radius:6px;padding:10px;margin-bottom:10px}.ttl{font-size:13px;font-weight:bold;color:#9ecfff;margin-bottom:8px}.lbl{display:block;font-size:11px;color:#aaa;margin:8px 0 4px}select,input{width:100%;padding:8px;border-radius:4px;border:1px solid #555;background:#2a2a2a;color:#fff;font-size:13px}input{margin:0}button{position:fixed;left:0;right:0;bottom:0;width:100%;padding:14px;border:0;border-radius:0;background:#0078d7;color:#fff;font-size:16px;margin:0;box-shadow:0 -2px 6px rgba(0,0,0,.4);z-index:10}.hint{font-size:12px;line-height:1.45;color:#aaa;margin-top:6px}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}');
   h.push('</style></head><body>');
   h.push('<h1>METRO UI</h1>');
   h.push('<div class="card"><div class="ttl">' +

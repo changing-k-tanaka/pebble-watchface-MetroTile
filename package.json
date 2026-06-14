@@ -1,7 +1,7 @@
 {
   "name": "metrotile",
   "author": "changing-k-tanaka",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "keywords": [
     "metrotile",
     "metro",
@@ -64,16 +64,6 @@
       "media": [
         {
           "type": "bitmap",
-          "name": "ICON_UMBRELLA",
-          "file": "images/umbrella.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "ICON_UMBRELLA_WHITE",
-          "file": "images/umbrella_white.png"
-        },
-        {
-          "type": "bitmap",
           "name": "ICON_BLUETOOTH",
           "file": "images/bluetooth.png"
         },
@@ -81,6 +71,246 @@
           "type": "bitmap",
           "name": "ICON_BLUETOOTH_WHITE",
           "file": "images/bluetooth_white.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_HEART",
+          "file": "images/icon/heart.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_HEART_BLACK",
+          "file": "images/icon_black/heart.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_FOOT",
+          "file": "images/icon/foot.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_FOOT_BLACK",
+          "file": "images/icon_black/foot.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_BATTERY_30",
+          "file": "images/icon/battery/30.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_BATTERY_50",
+          "file": "images/icon/battery/50.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_BATTERY_80",
+          "file": "images/icon/battery/80.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_BATTERY_FULL",
+          "file": "images/icon/battery/full.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_BATTERY_CHARGING_EMPTY",
+          "file": "images/icon/battery/charging_empty.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_BATTERY_CHARGING_FULL",
+          "file": "images/icon/battery/charging_full.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_BATTERY_30_BLACK",
+          "file": "images/icon_black/battery/30.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_BATTERY_50_BLACK",
+          "file": "images/icon_black/battery/50.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_BATTERY_80_BLACK",
+          "file": "images/icon_black/battery/80.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_BATTERY_FULL_BLACK",
+          "file": "images/icon_black/battery/full.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_BATTERY_CHARGING_EMPTY_BLACK",
+          "file": "images/icon_black/battery/charging_empty.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_BATTERY_CHARGING_FULL_BLACK",
+          "file": "images/icon_black/battery/charging_full.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_SUNNY",
+          "file": "images/icon/weather/sunny.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_PARTLY_CLOUDY",
+          "file": "images/icon/weather/partly_cloudy.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_CLOUDY",
+          "file": "images/icon/weather/cloudy.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_FOGGY",
+          "file": "images/icon/weather/foggy.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_RAINY",
+          "file": "images/icon/weather/rainy.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_CLOUD_FALLING",
+          "file": "images/icon/weather/cloud_falling.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_SNOWY",
+          "file": "images/icon/weather/snowy.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_THUNDERY",
+          "file": "images/icon/weather/thundery.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_SUNNY_BLACK",
+          "file": "images/icon_black/weather/sunny.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_PARTLY_CLOUDY_BLACK",
+          "file": "images/icon_black/weather/partly_cloudy.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_CLOUDY_BLACK",
+          "file": "images/icon_black/weather/cloudy.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_FOGGY_BLACK",
+          "file": "images/icon_black/weather/foggy.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_RAINY_BLACK",
+          "file": "images/icon_black/weather/rainy.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_CLOUD_FALLING_BLACK",
+          "file": "images/icon_black/weather/cloud_falling.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_SNOWY_BLACK",
+          "file": "images/icon_black/weather/snowy.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_THUNDERY_BLACK",
+          "file": "images/icon_black/weather/thundery.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_2X_SUNNY",
+          "file": "images/icon/weather_2x/sunny.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_2X_PARTLY_CLOUDY",
+          "file": "images/icon/weather_2x/partly_cloudy.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_2X_CLOUDY",
+          "file": "images/icon/weather_2x/cloudy.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_2X_FOGGY",
+          "file": "images/icon/weather_2x/foggy.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_2X_RAINY",
+          "file": "images/icon/weather_2x/rainy.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_2X_CLOUD_FALLING",
+          "file": "images/icon/weather_2x/cloud_falling.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_2X_SNOWY",
+          "file": "images/icon/weather_2x/snowy.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_2X_THUNDERY",
+          "file": "images/icon/weather_2x/thundery.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_2X_SUNNY_BLACK",
+          "file": "images/icon_black/weather_2x/sunny.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_2X_PARTLY_CLOUDY_BLACK",
+          "file": "images/icon_black/weather_2x/partly_cloudy.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_2X_CLOUDY_BLACK",
+          "file": "images/icon_black/weather_2x/cloudy.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_2X_FOGGY_BLACK",
+          "file": "images/icon_black/weather_2x/foggy.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_2X_RAINY_BLACK",
+          "file": "images/icon_black/weather_2x/rainy.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_2X_CLOUD_FALLING_BLACK",
+          "file": "images/icon_black/weather_2x/cloud_falling.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_2X_SNOWY_BLACK",
+          "file": "images/icon_black/weather_2x/snowy.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ICON_WEATHER_2X_THUNDERY_BLACK",
+          "file": "images/icon_black/weather_2x/thundery.png"
         }
       ]
     }

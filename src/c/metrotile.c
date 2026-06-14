@@ -19,7 +19,7 @@
 
 #define NUM_TILES            6
 #define TILE_GAP             4
-#define SETTINGS_VERSION     7
+#define SETTINGS_VERSION     10
 #define PERSIST_KEY_SETTINGS ((uint32_t)42)
 #define PERSIST_KEY_WEATHER  ((uint32_t)43)
 #define BW_LIGHT_GRAY_ARGB   (GColorLightGray.argb)
@@ -40,6 +40,7 @@ typedef enum {
   TILE_BATTERY    = 8,
   TILE_TEMPERATURE = 9,
   TILE_PRECIPITATION = 10,
+  TILE_WEATHER_ICON = 11,
 } TileType;
 
 // Packed: 3 bytes, no padding
@@ -64,6 +65,32 @@ typedef struct __attribute__((packed)) {
   uint8_t    temp_unit;
 } LegacySettingsV6;
 
+typedef struct __attribute__((packed)) {
+  uint8_t    version;
+  TileConfig tiles[NUM_TILES];
+  uint8_t    date_format;
+  uint8_t    temp_unit;
+  uint8_t    bluetooth_disconnect_vibe;
+} LegacySettingsV7;
+
+typedef struct __attribute__((packed)) {
+  uint8_t    version;
+  TileConfig tiles[NUM_TILES];
+  uint8_t    date_format;
+  uint8_t    temp_unit;
+  uint8_t    bluetooth_disconnect_vibe;
+  uint8_t    non_time_large_fonts;
+} LegacySettingsV8;
+
+typedef struct __attribute__((packed)) {
+  uint8_t    version;
+  TileConfig tiles[NUM_TILES];
+  uint8_t    date_format;
+  uint8_t    temp_unit;
+  uint8_t    bluetooth_disconnect_vibe;
+  uint8_t    label_visible_mask;
+} LegacySettingsV9;
+
 typedef struct {
   int8_t temperature;
   int8_t precipitation;
@@ -82,13 +109,58 @@ static WeatherData  s_weather;
 static int32_t      s_steps        = -1;  // -1 = unavailable → "--"
 static int32_t      s_heart_rate   =  0;  //  0 = unavailable → "--"
 static int32_t      s_battery_pct  = -1;  // -1 = not yet read
+static bool         s_battery_charging = false;
 static bool         s_bt_connected = false;
-static GFont        s_font_label;
-static GBitmap     *s_umbrella_black;
-static GBitmap     *s_umbrella_white;
 static GBitmap     *s_bluetooth_black;
 static GBitmap     *s_bluetooth_white;
-
+static GBitmap     *s_heart_black;
+static GBitmap     *s_heart_white;
+static GBitmap     *s_foot_black;
+static GBitmap     *s_foot_white;
+static GBitmap     *s_battery_30_black;
+static GBitmap     *s_battery_30_white;
+static GBitmap     *s_battery_50_black;
+static GBitmap     *s_battery_50_white;
+static GBitmap     *s_battery_80_black;
+static GBitmap     *s_battery_80_white;
+static GBitmap     *s_battery_full_black;
+static GBitmap     *s_battery_full_white;
+static GBitmap     *s_battery_charging_empty_black;
+static GBitmap     *s_battery_charging_empty_white;
+static GBitmap     *s_battery_charging_full_black;
+static GBitmap     *s_battery_charging_full_white;
+static GBitmap     *s_weather_cloud_falling_black;
+static GBitmap     *s_weather_cloud_falling_white;
+static GBitmap     *s_weather_cloudy_black;
+static GBitmap     *s_weather_cloudy_white;
+static GBitmap     *s_weather_foggy_black;
+static GBitmap     *s_weather_foggy_white;
+static GBitmap     *s_weather_partly_cloudy_black;
+static GBitmap     *s_weather_partly_cloudy_white;
+static GBitmap     *s_weather_rainy_black;
+static GBitmap     *s_weather_rainy_white;
+static GBitmap     *s_weather_snowy_black;
+static GBitmap     *s_weather_snowy_white;
+static GBitmap     *s_weather_sunny_black;
+static GBitmap     *s_weather_sunny_white;
+static GBitmap     *s_weather_thundery_black;
+static GBitmap     *s_weather_thundery_white;
+static GBitmap     *s_weather_2x_cloud_falling_black;
+static GBitmap     *s_weather_2x_cloud_falling_white;
+static GBitmap     *s_weather_2x_cloudy_black;
+static GBitmap     *s_weather_2x_cloudy_white;
+static GBitmap     *s_weather_2x_foggy_black;
+static GBitmap     *s_weather_2x_foggy_white;
+static GBitmap     *s_weather_2x_partly_cloudy_black;
+static GBitmap     *s_weather_2x_partly_cloudy_white;
+static GBitmap     *s_weather_2x_rainy_black;
+static GBitmap     *s_weather_2x_rainy_white;
+static GBitmap     *s_weather_2x_snowy_black;
+static GBitmap     *s_weather_2x_snowy_white;
+static GBitmap     *s_weather_2x_sunny_black;
+static GBitmap     *s_weather_2x_sunny_white;
+static GBitmap     *s_weather_2x_thundery_black;
+static GBitmap     *s_weather_2x_thundery_white;
 typedef struct {
   GRect bg;
   GRect content;
@@ -102,69 +174,7 @@ typedef struct {
 static const char *prv_tile_label(uint8_t type);
 static void prv_tile_value(uint8_t type, char *buf, size_t buf_size);
 static void prv_settings_save(void);
-
-static bool prv_use_large_display_fonts(void) {
-#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_GABBRO)
-  return true;
-#else
-  return false;
-#endif
-}
-
-static bool prv_use_large_label_font(void) {
-#if defined(PBL_PLATFORM_EMERY)
-  return true;
-#else
-  return false;
-#endif
-}
-
-static int prv_label_height(void) {
-  return prv_use_large_label_font() ? 20 : 16;
-}
-
-static int __attribute__((unused)) prv_gabbro_round_value_y_nudge(int row) {
-#if defined(PBL_PLATFORM_GABBRO)
-  if (row == 0) {
-    return 6;
-  }
-  if (row == 1) {
-    return -5;
-  }
-#else
-  (void)row;
-#endif
-  return 0;
-}
-
-static GFont __attribute__((unused)) prv_gabbro_round_edge_font(uint8_t type, int row, GFont font) {
-#if defined(PBL_PLATFORM_GABBRO)
-  if ((type == TILE_TIME || type == TILE_DATE) && (row == 0 || row == 2)) {
-    if (font == fonts_get_system_font(FONT_KEY_LECO_32_BOLD_NUMBERS)) {
-      return fonts_get_system_font(FONT_KEY_LECO_26_BOLD_NUMBERS_AM_PM);
-    }
-    if (font == fonts_get_system_font(FONT_KEY_LECO_26_BOLD_NUMBERS_AM_PM)) {
-      return fonts_get_system_font(FONT_KEY_LECO_20_BOLD_NUMBERS);
-    }
-  }
-#else
-  (void)type;
-  (void)row;
-#endif
-  return font;
-}
-
-static int __attribute__((unused)) prv_gabbro_round_edge_y_offset(uint8_t type, int row) {
-#if defined(PBL_PLATFORM_GABBRO)
-  if ((type == TILE_TIME || type == TILE_DATE) && row == 0) {
-    return 8;
-  }
-#else
-  (void)type;
-  (void)row;
-#endif
-  return 0;
-}
+static bool prv_is_weather_tile(uint8_t type);
 
 // ============================================================================
 // HELPER: GColor from stored argb byte
@@ -173,7 +183,6 @@ static int __attribute__((unused)) prv_gabbro_round_edge_y_offset(uint8_t type, 
 static GColor prv_color(uint8_t argb) {
   return (GColor){ .argb = argb };
 }
-
 
 static bool prv_use_dark_icon(uint8_t bg_argb) {
 #if defined(PBL_BW)
@@ -186,12 +195,81 @@ static bool prv_use_dark_icon(uint8_t bg_argb) {
 #endif
 }
 
-static GBitmap *prv_umbrella_bitmap_for_bg(uint8_t bg_argb) {
-  return prv_use_dark_icon(bg_argb) ? s_umbrella_black : s_umbrella_white;
-}
-
 static GBitmap *prv_bluetooth_bitmap_for_bg(uint8_t bg_argb) {
   return prv_use_dark_icon(bg_argb) ? s_bluetooth_black : s_bluetooth_white;
+}
+
+static GBitmap *prv_heart_bitmap_for_bg(uint8_t bg_argb) {
+  return prv_use_dark_icon(bg_argb) ? s_heart_black : s_heart_white;
+}
+
+// Unlike the other icons (which pick a variant for contrast against the
+// background), the foot icon should visually match the value text color, so
+// the variant is chosen from fg_argb rather than bg_argb.
+static GBitmap *prv_foot_bitmap_for_fg(uint8_t fg_argb) {
+  return prv_use_dark_icon(fg_argb) ? s_foot_white : s_foot_black;
+}
+
+static GBitmap *prv_weather_icon_variant(uint8_t bg_argb, GBitmap *dark_bitmap,
+                                         GBitmap *light_bitmap) {
+  return prv_use_dark_icon(bg_argb) ? dark_bitmap : light_bitmap;
+}
+
+static GBitmap *prv_weather_bitmap_for_bg(uint8_t bg_argb) {
+  const char *condition = s_weather.conditions;
+
+  if (condition[0] == '\0') {
+    return prv_weather_icon_variant(bg_argb, s_weather_2x_partly_cloudy_black,
+                                    s_weather_2x_partly_cloudy_white);
+  }
+  if (strcmp(condition, "Clear") == 0) {
+    return prv_weather_icon_variant(bg_argb, s_weather_2x_sunny_black, s_weather_2x_sunny_white);
+  }
+  if (strcmp(condition, "Cloudy") == 0) {
+    return prv_weather_icon_variant(bg_argb, s_weather_2x_cloudy_black, s_weather_2x_cloudy_white);
+  }
+  if (strcmp(condition, "Fog") == 0) {
+    return prv_weather_icon_variant(bg_argb, s_weather_2x_foggy_black, s_weather_2x_foggy_white);
+  }
+  if (strcmp(condition, "Rain") == 0 || strcmp(condition, "Fr.Rain") == 0) {
+    return prv_weather_icon_variant(bg_argb, s_weather_2x_rainy_black, s_weather_2x_rainy_white);
+  }
+  if (strcmp(condition, "Drizzle") == 0 || strcmp(condition, "Fr.Drizzle") == 0 ||
+      strcmp(condition, "Showers") == 0) {
+    return prv_weather_icon_variant(bg_argb, s_weather_2x_cloud_falling_black,
+                                    s_weather_2x_cloud_falling_white);
+  }
+  if (strcmp(condition, "Snow") == 0 || strcmp(condition, "Sn.Showers") == 0) {
+    return prv_weather_icon_variant(bg_argb, s_weather_2x_snowy_black, s_weather_2x_snowy_white);
+  }
+  if (strcmp(condition, "T-Storm") == 0) {
+    return prv_weather_icon_variant(bg_argb, s_weather_2x_thundery_black, s_weather_2x_thundery_white);
+  }
+  return prv_weather_icon_variant(bg_argb, s_weather_2x_partly_cloudy_black,
+                                  s_weather_2x_partly_cloudy_white);
+}
+
+static GBitmap *prv_battery_bitmap_for_bg(uint8_t bg_argb) {
+  bool use_dark = prv_use_dark_icon(bg_argb);
+  GBitmap *charging_empty = use_dark ? s_battery_charging_empty_black : s_battery_charging_empty_white;
+  GBitmap *charging_full = use_dark ? s_battery_charging_full_black : s_battery_charging_full_white;
+
+  if (s_battery_charging) {
+    return s_battery_pct >= 80 ? charging_full : charging_empty;
+  }
+  if (s_battery_pct >= 100) {
+    return use_dark ? s_battery_full_black : s_battery_full_white;
+  }
+  if (s_battery_pct >= 80) {
+    return use_dark ? s_battery_80_black : s_battery_80_white;
+  }
+  if (s_battery_pct >= 50) {
+    return use_dark ? s_battery_50_black : s_battery_50_white;
+  }
+  if (s_battery_pct >= 30) {
+    return use_dark ? s_battery_30_black : s_battery_30_white;
+  }
+  return use_dark ? s_battery_30_black : s_battery_30_white;
 }
 
 static void prv_set_tile_defaults(TileConfig *tile, TileType type) {
@@ -238,6 +316,10 @@ static void prv_set_tile_defaults(TileConfig *tile, TileType type) {
       tile->bg = PBL_IF_COLOR_ELSE((GColor){ .argb = 0xC9 }, GColorBlack).argb;
       tile->fg = GColorWhite.argb;
       break;
+    case TILE_WEATHER_ICON:
+      tile->bg = PBL_IF_COLOR_ELSE(GColorCyan, GColorBlack).argb;
+      tile->fg = PBL_IF_COLOR_ELSE(GColorBlack, GColorWhite).argb;
+      break;
     case TILE_NONE:
     default:
       tile->bg = GColorBlack.argb;
@@ -280,7 +362,7 @@ static void prv_settings_sanitize(void) {
   for (int i = 0; i < NUM_TILES; i++) {
     TileConfig *tile = &s_settings.tiles[i];
 
-    if (tile->type > TILE_PRECIPITATION) {
+    if (tile->type > TILE_WEATHER_ICON) {
       prv_set_tile_defaults(tile, TILE_NONE);
       continue;
     }
@@ -337,17 +419,62 @@ static void prv_settings_load_defaults(void) {
 
 static void prv_settings_load(void) {
   if (persist_exists(PERSIST_KEY_SETTINGS)) {
-    Settings loaded;
-    int n = persist_read_data(PERSIST_KEY_SETTINGS, &loaded, sizeof(Settings));
-    if (n == (int)sizeof(Settings) && loaded.version == SETTINGS_VERSION) {
-      s_settings = loaded;
+    // Read into the largest known on-disk layout (V9) so `n` reflects the
+    // actual stored size even though the current Settings struct is smaller.
+    LegacySettingsV9 raw;
+    int n = persist_read_data(PERSIST_KEY_SETTINGS, &raw, sizeof(raw));
+
+    if (n == (int)sizeof(Settings) && raw.version == SETTINGS_VERSION) {
+      memcpy(&s_settings, &raw, sizeof(Settings));
       prv_settings_sanitize();
       return;
     }
 
-    if (n == (int)sizeof(LegacySettingsV6) && loaded.version == (SETTINGS_VERSION - 1)) {
+    if (n == (int)sizeof(LegacySettingsV9) && raw.version == (SETTINGS_VERSION - 1)) {
+      memset(&s_settings, 0, sizeof(s_settings));
+      s_settings.version = SETTINGS_VERSION;
+      memcpy(s_settings.tiles, raw.tiles, sizeof(raw.tiles));
+      s_settings.date_format = raw.date_format;
+      s_settings.temp_unit = raw.temp_unit;
+      s_settings.bluetooth_disconnect_vibe = raw.bluetooth_disconnect_vibe;
+      prv_settings_sanitize();
+      prv_settings_save();
+      return;
+    }
+
+    if (n == (int)sizeof(LegacySettingsV8) && raw.version == (SETTINGS_VERSION - 2)) {
+      LegacySettingsV8 legacy;
+      memcpy(&legacy, &raw, sizeof(legacy));
+
+      memset(&s_settings, 0, sizeof(s_settings));
+      s_settings.version = SETTINGS_VERSION;
+      memcpy(s_settings.tiles, legacy.tiles, sizeof(legacy.tiles));
+      s_settings.date_format = legacy.date_format;
+      s_settings.temp_unit = legacy.temp_unit;
+      s_settings.bluetooth_disconnect_vibe = legacy.bluetooth_disconnect_vibe;
+      prv_settings_sanitize();
+      prv_settings_save();
+      return;
+    }
+
+    if (n == (int)sizeof(LegacySettingsV7) && raw.version == (SETTINGS_VERSION - 3)) {
+      LegacySettingsV7 legacy;
+      memcpy(&legacy, &raw, sizeof(legacy));
+
+      memset(&s_settings, 0, sizeof(s_settings));
+      s_settings.version = SETTINGS_VERSION;
+      memcpy(s_settings.tiles, legacy.tiles, sizeof(legacy.tiles));
+      s_settings.date_format = legacy.date_format;
+      s_settings.temp_unit = legacy.temp_unit;
+      s_settings.bluetooth_disconnect_vibe = legacy.bluetooth_disconnect_vibe;
+      prv_settings_sanitize();
+      prv_settings_save();
+      return;
+    }
+
+    if (n == (int)sizeof(LegacySettingsV6) && raw.version == (SETTINGS_VERSION - 4)) {
       LegacySettingsV6 legacy;
-      persist_read_data(PERSIST_KEY_SETTINGS, &legacy, sizeof(LegacySettingsV6));
+      memcpy(&legacy, &raw, sizeof(legacy));
 
       memset(&s_settings, 0, sizeof(s_settings));
       s_settings.version = SETTINGS_VERSION;
@@ -451,10 +578,12 @@ static void prv_bluetooth_handler(bool connected) {
 static void prv_battery_update(void) {
   BatteryChargeState state = battery_state_service_peek();
   s_battery_pct = state.charge_percent;
+  s_battery_charging = state.is_charging;
 }
 
 static void prv_battery_handler(BatteryChargeState state) {
   s_battery_pct = state.charge_percent;
+  s_battery_charging = state.is_charging;
   if (s_canvas_layer) layer_mark_dirty(s_canvas_layer);
 }
 
@@ -563,95 +692,205 @@ static TileRenderData prv_make_tile_render_data(int idx, GRect bounds) {
 // ============================================================================
 // FONT SELECTION
 // ============================================================================
+//
+// Value and label fonts are chosen by measuring the natural (unwrapped) size
+// of a representative "worst case" string for each tile type and picking the
+// largest candidate font (ordered largest -> smallest) whose natural size
+// fits the pixel area actually available. This makes font selection
+// self-adjusting across platforms/screen sizes and round vs. rectangular
+// layouts without per-platform threshold tables.
 
-// Select value font based on tile type, available pixel height, and available width.
-// Both dimensions must fit; downgrades to a smaller font if either is too tight.
-// Numeric tiles use compact LECO fonts; text/mixed tiles use Gothic.
-// Width thresholds are per-type because different value strings have different widths:
-//   TIME  "HH:MM"  5 chars w/ narrow colon → ~88/70/52 px at 32/26/20
-//   YEAR  "2026"   4 digits                → ~80/64/48 px
-//   STEPS "99999"  5 wide digits, no colon → ~100/80/60 px  (widest numeric)
-//   BPM   "999"    3 digits                → ~60/48/36 px
-static GFont prv_tile_font(uint8_t type, int value_h, int value_w) {
-  int leco_32_h = prv_use_large_display_fonts() ? 30 : 32;
-  int leco_26_h = prv_use_large_display_fonts() ? 24 : 26;
-  int goth_28_h = prv_use_large_display_fonts() ? 26 : 28;
-  int goth_24_h = prv_use_large_display_fonts() ? 22 : 24;
-  int goth_18_h = prv_use_large_display_fonts() ? 16 : 18;
+// Natural (unwrapped) content size of `text` rendered in `font`.
+static GSize prv_text_natural_size(const char *text, GFont font) {
+  return graphics_text_layout_get_content_size(
+      text, font, GRect(0, 0, 1000, 200), GTextOverflowModeFill, GTextAlignmentLeft);
+}
 
+// Height of a single line of text in `font`.
+static int prv_font_line_height(GFont font) {
+  return prv_text_natural_size("Ag", font).h;
+}
+
+// Largest font from `candidates` (ordered largest -> smallest) whose natural
+// rendering of `text` fits within avail_w x avail_h. Falls back to the
+// smallest candidate if none fit.
+static GFont prv_fit_font(const char *text, int avail_w, int avail_h,
+                          const char *const *candidates, int n) {
+  for (int i = 0; i < n; i++) {
+    GFont font = fonts_get_system_font(candidates[i]);
+    GSize size = prv_text_natural_size(text, font);
+    if (size.w <= avail_w && size.h <= avail_h) {
+      return font;
+    }
+  }
+  return fonts_get_system_font(candidates[n - 1]);
+}
+
+// Total width consumed by an icon_w x icon_h bitmap drawn at up to
+// (rect_h - 4)px tall (matching prv_draw_icon_value / prv_draw_precipitation_value),
+// plus the gap before the adjacent text.
+static int prv_icon_display_width(int icon_w, int icon_h, int rect_h, int gap) {
+  int max_h = rect_h - 4;
+  if (max_h < 1) {
+    max_h = rect_h;
+  }
+  if (icon_h > max_h && max_h > 0) {
+    icon_w = (icon_w * max_h) / icon_h;
+  }
+  return icon_w + gap;
+}
+
+// Candidate fonts, ordered largest -> smallest. The trailing Gothic entries
+// are fallbacks for icon+text tiles (e.g. STEPS "icon + 99999") on narrow
+// round tiles where even the smallest LECO numeric font would overflow.
+static const char *const FONT_CANDIDATES_NUMERIC[] = {
+  FONT_KEY_LECO_42_NUMBERS,
+  FONT_KEY_LECO_38_BOLD_NUMBERS,
+  FONT_KEY_LECO_36_BOLD_NUMBERS,
+  FONT_KEY_LECO_32_BOLD_NUMBERS,
+  FONT_KEY_LECO_26_BOLD_NUMBERS_AM_PM,
+  FONT_KEY_LECO_20_BOLD_NUMBERS,
+  FONT_KEY_GOTHIC_18_BOLD,
+  FONT_KEY_GOTHIC_14_BOLD,
+};
+
+// LECO fonts whose character set includes '%', followed by Gothic fallbacks
+// for screens too narrow to fit "100%" (plus an icon) even at LECO_26.
+static const char *const FONT_CANDIDATES_PERCENT[] = {
+  FONT_KEY_LECO_36_BOLD_NUMBERS,
+  FONT_KEY_LECO_32_BOLD_NUMBERS,
+  FONT_KEY_LECO_26_BOLD_NUMBERS_AM_PM,
+  FONT_KEY_GOTHIC_24_BOLD,
+  FONT_KEY_GOTHIC_18_BOLD,
+  FONT_KEY_GOTHIC_14_BOLD,
+  FONT_KEY_GOTHIC_14,
+  FONT_KEY_GOTHIC_09,
+};
+
+static const char *const FONT_CANDIDATES_TEXT[] = {
+  FONT_KEY_GOTHIC_28_BOLD,
+  FONT_KEY_GOTHIC_24_BOLD,
+  FONT_KEY_GOTHIC_18_BOLD,
+  FONT_KEY_GOTHIC_14_BOLD,
+  FONT_KEY_GOTHIC_14,
+};
+
+static const char *const FONT_CANDIDATES_LABEL[] = {
+  FONT_KEY_GOTHIC_18_BOLD,
+  FONT_KEY_GOTHIC_14,
+};
+
+#define FONT_CANDIDATES_COUNT(arr) (int)(sizeof(arr) / sizeof((arr)[0]))
+
+// Default (non-city) label text per tile type. Used both for display and for
+// sizing the label font.
+static const char *prv_label_default_text(uint8_t type) {
+  switch (type) {
+    case TILE_TIME:          return "TIME";
+    case TILE_DATE:          return "DATE";
+    case TILE_DAY:           return "DOW";
+    case TILE_YEAR:          return "YEAR";
+    case TILE_HEART_RATE:    return "BPM";
+    case TILE_STEPS:         return "STEPS";
+    case TILE_WEATHER:       return "WX";
+    case TILE_BATTERY:       return "BAT";
+    case TILE_TEMPERATURE:   return "TEMP";
+    case TILE_PRECIPITATION: return "RAIN";
+    case TILE_WEATHER_ICON:  return "WX";
+    default:                 return "";
+  }
+}
+
+// "Worst case" string used to size the value font for each tile type.
+static const char *prv_value_size_text(uint8_t type) {
+  switch (type) {
+    case TILE_TIME:          return "24:59";
+    case TILE_DATE:          return "12/31";
+    case TILE_DAY:           return "Thu";
+    case TILE_YEAR:          return "2999";
+    case TILE_HEART_RATE:    return "180";
+    case TILE_STEPS:         return "99999";
+    case TILE_WEATHER:       return "Sn.Showers";
+    case TILE_TEMPERATURE:   return "104°F";
+    case TILE_PRECIPITATION: return "100%";
+    case TILE_BATTERY:       return "100%";
+    case TILE_WEATHER_ICON:  return "X";
+    default:                 return "";
+  }
+}
+
+// Candidate value-font list for each tile type. Numeric tiles use LECO;
+// percentages are restricted to the LECO fonts whose charset includes '%';
+// text/mixed tiles use Gothic.
+static void prv_value_font_candidates(uint8_t type, const char *const **out_candidates,
+                                      int *out_n) {
   switch (type) {
     case TILE_TIME:
-      if (value_h >= leco_32_h && value_w >= 88) return fonts_get_system_font(FONT_KEY_LECO_32_BOLD_NUMBERS);
-      if (value_h >= leco_26_h && value_w >= 70) return fonts_get_system_font(FONT_KEY_LECO_26_BOLD_NUMBERS_AM_PM);
-      return fonts_get_system_font(FONT_KEY_LECO_20_BOLD_NUMBERS);
-
-    case TILE_YEAR:
-      if (value_h >= leco_32_h && value_w >= 82) return fonts_get_system_font(FONT_KEY_LECO_32_BOLD_NUMBERS);
-      if (value_h >= leco_26_h && value_w >= 66) return fonts_get_system_font(FONT_KEY_LECO_26_BOLD_NUMBERS_AM_PM);
-      return fonts_get_system_font(FONT_KEY_LECO_20_BOLD_NUMBERS);
-
-    case TILE_STEPS:
-      // "99999": 5 full-width digits need more room than "HH:MM" (which has a narrow colon)
-      if (value_h >= leco_32_h && value_w >= 102) return fonts_get_system_font(FONT_KEY_LECO_32_BOLD_NUMBERS);
-      if (value_h >= leco_26_h && value_w >=  82) return fonts_get_system_font(FONT_KEY_LECO_26_BOLD_NUMBERS_AM_PM);
-      return fonts_get_system_font(FONT_KEY_LECO_20_BOLD_NUMBERS);
-
-    case TILE_HEART_RATE:
-      // "999": only 3 digits, fits at smaller thresholds
-      if (value_h >= leco_32_h && value_w >= 62) return fonts_get_system_font(FONT_KEY_LECO_32_BOLD_NUMBERS);
-      if (value_h >= leco_26_h && value_w >= 50) return fonts_get_system_font(FONT_KEY_LECO_26_BOLD_NUMBERS_AM_PM);
-      return fonts_get_system_font(FONT_KEY_LECO_20_BOLD_NUMBERS);
-
-    case TILE_BATTERY:
-      // "100%" — 4 chars with %, use Gothic
-      if (value_h >= goth_28_h && value_w >= 60) return fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
-      if (value_h >= goth_24_h && value_w >= 50) return fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
-      if (value_h >= goth_18_h && value_w >= 38) return fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
-      return fonts_get_system_font(FONT_KEY_GOTHIC_14);
-
-    case TILE_TEMPERATURE:
-      if (value_h >= goth_28_h && value_w >= 64) return fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
-      if (value_h >= goth_24_h && value_w >= 54) return fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
-      if (value_h >= goth_18_h && value_w >= 42) return fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
-      return fonts_get_system_font(FONT_KEY_GOTHIC_14);
-
     case TILE_DATE:
-#if defined(PBL_PLATFORM_GABBRO)
-      if (value_h >= leco_32_h && value_w >= 88) return fonts_get_system_font(FONT_KEY_LECO_32_BOLD_NUMBERS);
-      if (value_h >= leco_26_h && value_w >= 70) return fonts_get_system_font(FONT_KEY_LECO_26_BOLD_NUMBERS_AM_PM);
-      return fonts_get_system_font(FONT_KEY_LECO_20_BOLD_NUMBERS);
-#endif
-
-    case TILE_DAY:
+    case TILE_YEAR:
+    case TILE_STEPS:
+    case TILE_HEART_RATE:
+      *out_candidates = FONT_CANDIDATES_NUMERIC;
+      *out_n = FONT_CANDIDATES_COUNT(FONT_CANDIDATES_NUMERIC);
+      return;
     case TILE_PRECIPITATION:
-      // Keep DOW, precipitation, and date on the same visual size band.
-      if (prv_use_large_display_fonts()) {
-        if (value_h >= goth_28_h && value_w >= 60) return fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
-        if (value_h >= goth_24_h && value_w >= 44) return fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
-        if (value_h >= goth_18_h && value_w >= 32) return fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
-        return fonts_get_system_font(FONT_KEY_GOTHIC_14);
-      }
-      if (value_h >= goth_24_h && value_w >= 60) return fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
-      if (value_h >= goth_18_h && value_w >= 44) return fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
-      return fonts_get_system_font(FONT_KEY_GOTHIC_14);
-
-    case TILE_WEATHER:
-      // Mixed text values can run long, so cap at GOTHIC_18 and stay conservative
-      // on the smallest platforms to avoid clipping.
-#if defined(PBL_PLATFORM_CHALK) || defined(PBL_PLATFORM_FLINT)
-      return fonts_get_system_font(FONT_KEY_GOTHIC_14);
-#else
-      if (value_h >= goth_18_h && value_w >= 50) return fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
-      return fonts_get_system_font(FONT_KEY_GOTHIC_14);
-#endif
-
-    default:
-      // Other text strings
-      if (value_h >= goth_28_h && value_w >= 78) return fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
-      if (value_h >= goth_24_h && value_w >= 60) return fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
-      if (value_h >= goth_18_h && value_w >= 44) return fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
-      return fonts_get_system_font(FONT_KEY_GOTHIC_14);
+    case TILE_BATTERY:
+      *out_candidates = FONT_CANDIDATES_PERCENT;
+      *out_n = FONT_CANDIDATES_COUNT(FONT_CANDIDATES_PERCENT);
+      return;
+    default:  // DAY, WEATHER, TEMPERATURE, WEATHER_ICON
+      *out_candidates = FONT_CANDIDATES_TEXT;
+      *out_n = FONT_CANDIDATES_COUNT(FONT_CANDIDATES_TEXT);
+      return;
   }
+}
+
+// Largest font that fits this tile type's worst-case value string within
+// avail_w x avail_h.
+static GFont prv_tile_font(uint8_t type, int avail_w, int avail_h) {
+  const char *const *candidates;
+  int n;
+  prv_value_font_candidates(type, &candidates, &n);
+  return prv_fit_font(prv_value_size_text(type), avail_w, avail_h, candidates, n);
+}
+
+// Largest label font that fits this tile type's label text within avail_w x avail_h.
+static GFont prv_label_font(uint8_t type, int avail_w, int avail_h) {
+  return prv_fit_font(prv_label_default_text(type), avail_w, avail_h,
+                      FONT_CANDIDATES_LABEL, FONT_CANDIDATES_COUNT(FONT_CANDIDATES_LABEL));
+}
+
+// Bitmap drawn alongside the value text for icon+text tiles (NULL if `tile`
+// has no icon).
+static GBitmap *prv_tile_icon_bitmap(const TileRenderData *tile) {
+  switch (tile->type) {
+    case TILE_HEART_RATE:
+      return prv_heart_bitmap_for_bg(tile->bg_argb);
+    case TILE_STEPS:
+      return prv_foot_bitmap_for_fg(tile->fg_argb);
+    case TILE_PRECIPITATION:
+      return prv_use_dark_icon(tile->bg_argb) ? s_weather_cloud_falling_black
+                                              : s_weather_cloud_falling_white;
+    case TILE_BATTERY:
+      return prv_battery_bitmap_for_bg(tile->bg_argb);
+    default:
+      return NULL;
+  }
+}
+
+// Value font for a tile, accounting for the icon (if any) drawn alongside
+// the text within the same rect.
+static GFont prv_tile_value_font(const TileRenderData *tile, int avail_w, int avail_h) {
+  GBitmap *icon = prv_tile_icon_bitmap(tile);
+  if (icon) {
+    GRect icon_bounds = gbitmap_get_bounds(icon);
+    int gap = (tile->type == TILE_PRECIPITATION) ? 2 : 3;
+    avail_w -= prv_icon_display_width(icon_bounds.size.w, icon_bounds.size.h, avail_h, gap);
+    if (avail_w < 0) {
+      avail_w = 0;
+    }
+  }
+  return prv_tile_font(tile->type, avail_w, avail_h);
 }
 
 // ============================================================================
@@ -659,27 +898,20 @@ static GFont prv_tile_font(uint8_t type, int value_h, int value_w) {
 // ============================================================================
 
 static const char *prv_tile_label(uint8_t type) {
-  const char *city = prv_weather_city_label();
-
-  switch (type) {
-    case TILE_TIME:       return "TIME";
-    case TILE_DATE:       return "DATE";
-    case TILE_DAY:        return "DOW";
-    case TILE_YEAR:       return "YEAR";
-    case TILE_HEART_RATE: return "BPM";
-    case TILE_STEPS:      return "STEPS";
-    case TILE_WEATHER:    return city ? city : "WX";
-    case TILE_BATTERY:    return "BAT";
-    case TILE_TEMPERATURE:return city ? city : "TEMP";
-    case TILE_PRECIPITATION:return city ? city : "RAIN";
-    default:              return "";
+  if (prv_is_weather_tile(type)) {
+    const char *city = prv_weather_city_label();
+    if (city) {
+      return city;
+    }
   }
+  return prv_label_default_text(type);
 }
 
 static bool prv_is_weather_tile(uint8_t type) {
   return type == TILE_WEATHER ||
          type == TILE_TEMPERATURE ||
-         type == TILE_PRECIPITATION;
+         type == TILE_PRECIPITATION ||
+         type == TILE_WEATHER_ICON;
 }
 
 static bool prv_show_bluetooth_disconnected_value(uint8_t type) {
@@ -765,15 +997,51 @@ static void prv_tile_value(uint8_t type, char *buf, size_t buf_size) {
         snprintf(buf, buf_size, "...");
       }
       break;
+    case TILE_WEATHER_ICON:
+      if (s_weather.conditions[0] == '\0') {
+        snprintf(buf, buf_size, "...");
+      } else {
+        buf[0] = '\0';
+      }
+      break;
     default:
       buf[0] = '\0';
       break;
   }
 }
 
+// Vertical position for an icon next to a single line of text.
+//
+// graphics_draw_text() vertically centers its text within the rect passed to
+// it (here, `rect` itself), regardless of the text's natural content height.
+// So with middle_align true, the icon's bounding box is centered in `rect`
+// too, landing it on the same center line as the text. Icons whose glyph is
+// itself centered within its bounding box (e.g. battery) then line up with
+// the text's ink, suiting icons that have no baseline of their own and would
+// otherwise look like they float above or sink below the text.
+//
+// With middle_align false, the icon's bottom edge is anchored to
+// rect.origin.y + text_size.h, which lands at the text line's baseline
+// (bottom of the digits' ink, ignoring descenders), keeping icon and text
+// visually aligned regardless of how tall the icon is relative to the font.
+//
+// Clamped to stay within rect either way.
+static int prv_icon_value_y(GRect rect, GSize text_size, int icon_h, bool middle_align) {
+  int y = middle_align ? (rect.origin.y + (rect.size.h - icon_h) / 2)
+                       : (rect.origin.y + text_size.h - icon_h);
+  if (y < rect.origin.y) {
+    y = rect.origin.y;
+  }
+  int max_y = rect.origin.y + rect.size.h - icon_h;
+  if (y > max_y) {
+    y = max_y;
+  }
+  return y;
+}
+
 static void prv_draw_icon_value(GContext *ctx, GRect rect,
                                 const char *value_buf, GFont value_font,
-                                GBitmap *bitmap) {
+                                GBitmap *bitmap, bool middle_align) {
   GSize text_size = graphics_text_layout_get_content_size(
       value_buf, value_font, rect, GTextOverflowModeTrailingEllipsis,
       GTextAlignmentLeft);
@@ -781,19 +1049,28 @@ static void prv_draw_icon_value(GContext *ctx, GRect rect,
   int icon_h = icon_bounds.size.h;
   int icon_w = icon_bounds.size.w;
   if (icon_h > 0 && icon_w > 0) {
-    int target_h = icon_bounds.size.h + 2;
-    if (target_h > rect.size.h) {
-      target_h = rect.size.h;
+    int max_h = rect.size.h - 4;
+    if (max_h < 1) {
+      max_h = rect.size.h;
     }
-    if (target_h < icon_bounds.size.h) {
-      target_h = icon_bounds.size.h;
-    }
-    icon_h = target_h;
-    icon_w = (icon_bounds.size.w * icon_h) / icon_bounds.size.h;
-    if (icon_w < icon_bounds.size.w) {
-      icon_w = icon_bounds.size.w;
+    if (icon_h > max_h && max_h > 0) {
+      icon_w = (icon_w * max_h) / icon_h;
+      icon_h = max_h;
     }
   }
+
+  // Vertically center the icon+text group as a whole within rect, rather
+  // than anchoring the text's top-aligned line at rect's top edge (which
+  // leaves the whole group sitting near the top when rect is much taller
+  // than the line, e.g. an icon tile with a small value font).
+  int group_h = (icon_h > text_size.h) ? icon_h : text_size.h;
+  int voffset = (rect.size.h - group_h) / 2;
+  if (voffset < 0) {
+    voffset = 0;
+  }
+  GRect group_rect = GRect(rect.origin.x, rect.origin.y + voffset,
+                           rect.size.w, rect.size.h - voffset);
+
   int gap = 3;
   int group_w = icon_w + gap + text_size.w;
   int start_x = rect.origin.x + (rect.size.w - group_w) / 2;
@@ -801,44 +1078,147 @@ static void prv_draw_icon_value(GContext *ctx, GRect rect,
     start_x = rect.origin.x;
   }
 
-  int icon_y = rect.origin.y + (rect.size.h - icon_h) / 2;
-#if defined(PBL_PLATFORM_EMERY)
-  if (icon_h > 0 && rect.size.h > icon_h + 8) {
-    icon_y -= 8;
-  }
-#endif
+  int icon_y = prv_icon_value_y(group_rect, text_size, icon_h, middle_align);
   if (bitmap) {
     graphics_context_set_compositing_mode(ctx, GCompOpSet);
     graphics_draw_bitmap_in_rect(ctx, bitmap, GRect(start_x, icon_y, icon_w, icon_h));
     graphics_context_set_compositing_mode(ctx, GCompOpAssign);
   }
 
-  GRect text_rect = GRect(start_x + icon_w + gap, rect.origin.y,
+  GRect text_rect = GRect(start_x + icon_w + gap, group_rect.origin.y,
                           rect.size.w - (start_x - rect.origin.x) - icon_w - gap,
-                          rect.size.h);
+                          group_rect.size.h);
   graphics_draw_text(ctx, value_buf, value_font, text_rect,
                      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 }
 
 static void prv_draw_precipitation_value(GContext *ctx, GRect rect,
                                          const char *value_buf, GFont value_font,
-                                         uint8_t bg_argb) {
+                                         uint8_t bg_argb, uint8_t fg_argb) {
+  GSize text_size = graphics_text_layout_get_content_size(
+      value_buf, value_font, rect, GTextOverflowModeTrailingEllipsis,
+      GTextAlignmentLeft);
+  GBitmap *bitmap = prv_use_dark_icon(bg_argb) ? s_weather_cloud_falling_black
+                                               : s_weather_cloud_falling_white;
+  GRect icon_bounds = bitmap ? gbitmap_get_bounds(bitmap) : GRect(0, 0, 0, 0);
+  int icon_h = icon_bounds.size.h;
+  int icon_w = icon_bounds.size.w;
+  if (icon_bounds.size.h > 0 && icon_bounds.size.w > 0) {
+    int max_h = rect.size.h - 4;
+    if (max_h < 1) {
+      max_h = rect.size.h;
+    }
+    if (icon_h > max_h && max_h > 0) {
+      icon_w = (icon_w * max_h) / icon_h;
+      icon_h = max_h;
+    }
+  }
+  int group_h = (icon_h > text_size.h) ? icon_h : text_size.h;
+  int voffset = (rect.size.h - group_h) / 2;
+  if (voffset < 0) {
+    voffset = 0;
+  }
+  GRect group_rect = GRect(rect.origin.x, rect.origin.y + voffset,
+                           rect.size.w, rect.size.h - voffset);
+
+  int gap = 2;
+  int group_w = icon_w + gap + text_size.w;
+  int start_x = rect.origin.x + (rect.size.w - group_w) / 2;
+  if (start_x < rect.origin.x) {
+    start_x = rect.origin.x;
+  }
+
+  int icon_y = prv_icon_value_y(group_rect, text_size, icon_h, false);
+  if (bitmap) {
+    graphics_context_set_compositing_mode(ctx, GCompOpSet);
+    graphics_draw_bitmap_in_rect(ctx, bitmap, GRect(start_x, icon_y, icon_w, icon_h));
+    graphics_context_set_compositing_mode(ctx, GCompOpAssign);
+  }
+
+  GRect text_rect = GRect(start_x + icon_w + gap, group_rect.origin.y,
+                          rect.size.w - (start_x - rect.origin.x) - icon_w - gap,
+                          group_rect.size.h);
+  graphics_context_set_text_color(ctx, prv_color(fg_argb));
+  graphics_draw_text(ctx, value_buf, value_font, text_rect,
+                     GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+}
+
+static void prv_draw_battery_value(GContext *ctx, GRect rect,
+                                   const char *value_buf, GFont value_font,
+                                   uint8_t bg_argb) {
   prv_draw_icon_value(ctx, rect, value_buf, value_font,
-                      prv_umbrella_bitmap_for_bg(bg_argb));
+                      prv_battery_bitmap_for_bg(bg_argb), true);
+}
+
+static void prv_draw_weather_value(GContext *ctx, GRect rect, uint8_t bg_argb) {
+  GBitmap *bitmap = prv_weather_bitmap_for_bg(bg_argb);
+  if (!bitmap) {
+    return;
+  }
+
+  GRect icon_bounds = gbitmap_get_bounds(bitmap);
+  int icon_h = icon_bounds.size.h;
+  int icon_w = icon_bounds.size.w;
+  if (icon_h <= 0 || icon_w <= 0) {
+    return;
+  }
+
+  int max_h = rect.size.h - 4;
+  if (max_h < 1) {
+    max_h = rect.size.h;
+  }
+  if (icon_h > max_h && max_h > 0) {
+    icon_w = (icon_w * max_h) / icon_h;
+    icon_h = max_h;
+  }
+
+  int icon_x = rect.origin.x + (rect.size.w - icon_w) / 2;
+  int icon_y = rect.origin.y + (rect.size.h - icon_h) / 2;
+  graphics_context_set_compositing_mode(ctx, GCompOpSet);
+  graphics_draw_bitmap_in_rect(ctx, bitmap, GRect(icon_x, icon_y, icon_w, icon_h));
+  graphics_context_set_compositing_mode(ctx, GCompOpAssign);
 }
 
 static void prv_draw_tile_value(GContext *ctx, const TileRenderData *tile,
                                 GRect rect, GFont value_font,
                                 GTextOverflowMode overflow,
                                 GTextAlignment alignment) {
+  if (tile->type == TILE_BATTERY) {
+    prv_draw_battery_value(ctx, rect, tile->value, value_font, tile->bg_argb);
+    return;
+  }
+
   if (tile->type == TILE_PRECIPITATION) {
-    prv_draw_precipitation_value(ctx, rect, tile->value, value_font, tile->bg_argb);
+    prv_draw_precipitation_value(ctx, rect, tile->value, value_font,
+                                 tile->bg_argb, tile->fg_argb);
+    return;
+  }
+
+  if (tile->type == TILE_HEART_RATE) {
+    prv_draw_icon_value(ctx, rect, tile->value, value_font,
+                        prv_heart_bitmap_for_bg(tile->bg_argb), false);
+    return;
+  }
+
+  if (tile->type == TILE_STEPS) {
+    prv_draw_icon_value(ctx, rect, tile->value, value_font,
+                        prv_foot_bitmap_for_fg(tile->fg_argb), false);
+    return;
+  }
+
+  if (tile->type == TILE_WEATHER_ICON) {
+    if (prv_show_bluetooth_disconnected_value(tile->type)) {
+      prv_draw_icon_value(ctx, rect, tile->value, value_font,
+                          prv_bluetooth_bitmap_for_bg(tile->bg_argb), false);
+      return;
+    }
+    prv_draw_weather_value(ctx, rect, tile->bg_argb);
     return;
   }
 
   if (prv_show_bluetooth_disconnected_value(tile->type)) {
     prv_draw_icon_value(ctx, rect, tile->value, value_font,
-                        prv_bluetooth_bitmap_for_bg(tile->bg_argb));
+                        prv_bluetooth_bitmap_for_bg(tile->bg_argb), false);
     return;
   }
 
@@ -851,8 +1231,6 @@ static void prv_draw_round_tile(GContext *ctx, const TileRenderData *tile,
   static const int PAD = 3;
   static const int k_label_nudge[] = { 5, 1, 1 };
   static const int k_bottom_nudge[] = { 5, -2, -5 };
-  static const int k_value_gap[] = { 0, 0, 0 };
-  int label_h = prv_label_height();
 
   int radius = bounds.size.w / 2;
   int row = idx / 2;
@@ -866,140 +1244,143 @@ static void prv_draw_round_tile(GContext *ctx, const TileRenderData *tile,
     return;
   }
 
-  int value_top = label_y + label_h + k_value_gap[row];
+  // Default: no label drawn, value occupies the whole row.
+  int value_top = label_y;
+
+  // Label width is taken from row 0's geometry so labels line up across
+  // rows regardless of how wide the current row's circular safe area is.
+  // The bottom row sits in the wide middle of the circle, so it gets its
+  // own (wider) geometry, letting its label use a larger/bolder font.
+  GRect ref_bg = (row == 2) ? tile->bg : prv_tile_rect(col, bounds);
+  int ref_label_y = (row == 2) ? label_y : ref_bg.origin.y + PAD + k_label_nudge[0];
+  int probe_left, probe_right;
+  prv_circle_safe_x(ref_label_y, radius, PAD, &probe_left, &probe_right);
+  if (probe_left < tile_left + PAD) {
+    probe_left = tile_left + PAD;
+  }
+  if (probe_right > tile_right - PAD) {
+    probe_right = tile_right - PAD;
+  }
+
+  if (probe_right > probe_left) {
+    GFont label_font = prv_label_font(tile->type, probe_right - probe_left, 28);
+    int label_h = prv_font_line_height(label_font) + 2;
+
+    if (tile_bottom - (label_y + label_h) >= 10) {
+      int label_left_b, label_right_b;
+      prv_circle_safe_x(label_y + label_h - 2, radius, PAD, &label_left_b, &label_right_b);
+      int label_left = (probe_left > label_left_b) ? probe_left : label_left_b;
+      int label_right = (probe_right < label_right_b) ? probe_right : label_right_b;
+      if (label_left < tile_left + PAD) {
+        label_left = tile_left + PAD;
+      }
+      if (label_right > tile_right - PAD) {
+        label_right = tile_right - PAD;
+      }
+
+      if (label_right > label_left) {
+        GRect label_rect = GRect(label_left, label_y, label_right - label_left, label_h - 2);
+        // Bottom row's label rect spans most of the tile width (its
+        // circular safe area is wide), so align toward the inner edge
+        // (right for the left tile, left for the right tile) to match
+        // the other rows' visual position instead of centering.
+        GTextAlignment label_align = (row == 2)
+            ? (col == 0 ? GTextAlignmentRight : GTextAlignmentLeft)
+            : GTextAlignmentCenter;
+        graphics_draw_text(ctx, tile->label, label_font, label_rect,
+                           GTextOverflowModeTrailingEllipsis, label_align, NULL);
+        value_top = label_y + label_h;
+      }
+    }
+  }
+
   int value_max_h = tile_bottom - value_top;
-  bool show_label = (value_max_h >= 10);
-
-  if (show_label) {
-    GRect ref_bg = prv_tile_rect(col, bounds);
-    int ref_label_y = ref_bg.origin.y + PAD + k_label_nudge[0];
-    int label_left_top, label_right_top, label_left_bottom, label_right_bottom;
-    prv_circle_safe_x(ref_label_y, radius, PAD, &label_left_top, &label_right_top);
-    prv_circle_safe_x(ref_label_y + label_h - 2, radius, PAD,
-                      &label_left_bottom, &label_right_bottom);
-
-    int label_left = (label_left_top > label_left_bottom) ? label_left_top : label_left_bottom;
-    int label_right = (label_right_top < label_right_bottom) ? label_right_top : label_right_bottom;
-    if (label_left < tile_left + PAD) {
-      label_left = tile_left + PAD;
-    }
-    if (label_right > tile_right - PAD) {
-      label_right = tile_right - PAD;
-    }
-    if (label_right > label_left) {
-      GRect label_rect = GRect(label_left, label_y, label_right - label_left, label_h - 2);
-      graphics_draw_text(ctx, tile->label, s_font_label, label_rect,
-                         GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
-    }
-
-    int value_mid_y = value_top + value_max_h / 2;
-    int value_left, value_right;
-    prv_circle_safe_x(value_mid_y, radius, PAD, &value_left, &value_right);
-    if (value_left < tile_left + PAD) {
-      value_left = tile_left + PAD;
-    }
-    if (value_right > tile_right - PAD) {
-      value_right = tile_right - PAD;
-    }
-
-    if (value_right > value_left) {
-      int final_w = value_right - value_left;
-      int value_y = value_top;
-      GFont value_font = prv_tile_font(tile->type, value_max_h, final_w);
-      value_font = prv_gabbro_round_edge_font(tile->type, row, value_font);
-      GSize value_size = graphics_text_layout_get_content_size(
-          tile->value, value_font, GRect(0, 0, final_w, value_max_h),
-          GTextOverflowModeWordWrap, GTextAlignmentCenter);
-
-      int value_h = value_size.h;
-      if (value_h <= 0 || value_h > value_max_h) {
-        value_h = value_max_h;
-      }
-
-      if (row == 1 && value_max_h > value_h) {
-        value_y = value_top + (value_max_h - value_h) / 2;
-      }
-      if (row == 0 && tile->type == TILE_STEPS && value_max_h > value_h + 2) {
-        value_y += 2;
-      }
-      if (tile->type == TILE_PRECIPITATION && value_max_h > value_h + 4) {
-        value_y += 4;
-      }
-      if (value_max_h > value_h) {
-        int max_offset = value_max_h - value_h;
-        int nudge = prv_gabbro_round_value_y_nudge(row);
-        int offset = value_y - value_top + nudge;
-        if (offset < 0) {
-          offset = 0;
-        }
-        if (offset > max_offset) {
-          offset = max_offset;
-        }
-        value_y = value_top + offset;
-      }
-
-      value_y += prv_gabbro_round_edge_y_offset(tile->type, row);
-      if (value_y + value_h > tile_bottom) {
-        value_y = tile_bottom - value_h;
-      }
-
-      int value_x = value_left;
-      if (row == 2 && col == 1) {
-        value_x -= 8;
-      }
-
-      GRect value_rect = GRect(value_x, value_y, final_w, value_h);
-      prv_draw_tile_value(ctx, tile, value_rect, value_font,
-                          GTextOverflowModeWordWrap, GTextAlignmentCenter);
-    }
+  if (value_max_h <= 0) {
     return;
   }
 
+  int value_mid_y = (value_top + tile_bottom) / 2;
   int value_left, value_right;
-  prv_circle_safe_x((value_top + tile_bottom) / 2, radius, PAD, &value_left, &value_right);
+  prv_circle_safe_x(value_mid_y, radius, PAD, &value_left, &value_right);
   if (value_left < tile_left + PAD) {
     value_left = tile_left + PAD;
   }
   if (value_right > tile_right - PAD) {
     value_right = tile_right - PAD;
   }
-
-  int full_h = tile_bottom - value_top;
-  if (value_right > value_left && full_h > 0) {
-    int value_w = value_right - value_left;
-    GRect value_rect = GRect(value_left, value_top, value_w, full_h);
-    GFont value_font = prv_tile_font(tile->type, full_h, value_w);
-    value_font = prv_gabbro_round_edge_font(tile->type, row, value_font);
-    prv_draw_tile_value(ctx, tile, value_rect, value_font,
-                        GTextOverflowModeWordWrap, GTextAlignmentCenter);
+  if (row == 2 && col == 1) {
+    value_left -= 8;
   }
+
+  if (value_right <= value_left) {
+    return;
+  }
+
+  int final_w = value_right - value_left;
+
+  // Icon-bearing tiles: the icon-drawing helpers scale their bitmap to
+  // (rect.size.h - 4), so size (and fit the font to) a rect tall enough for
+  // the icon's native size, rather than the text's natural height. This
+  // keeps the font fit and the actual draw rect using the same height, so
+  // text doesn't get vertically clipped.
+  bool bt_icon = prv_show_bluetooth_disconnected_value(tile->type);
+  GBitmap *icon = bt_icon ? prv_bluetooth_bitmap_for_bg(tile->bg_argb)
+                          : prv_tile_icon_bitmap(tile);
+
+  int value_h;
+  GFont value_font;
+  if (tile->type == TILE_WEATHER_ICON && !bt_icon) {
+    // Icon-only tile: the "value" text (if any) is just a sizing/placeholder
+    // string, not what's drawn, so it occupies the whole available height.
+    value_h = value_max_h;
+    value_font = prv_tile_value_font(tile, final_w, value_h);
+  } else if (icon) {
+    int icon_h = gbitmap_get_bounds(icon).size.h + 4;
+    value_h = (icon_h < value_max_h) ? icon_h : value_max_h;
+    value_font = prv_tile_value_font(tile, final_w, value_h);
+  } else {
+    value_font = prv_tile_value_font(tile, final_w, value_max_h);
+    GSize value_size = graphics_text_layout_get_content_size(
+        tile->value, value_font, GRect(0, 0, final_w, value_max_h),
+        GTextOverflowModeWordWrap, GTextAlignmentCenter);
+    value_h = value_size.h;
+    if (value_h <= 0 || value_h > value_max_h) {
+      value_h = value_max_h;
+    }
+  }
+
+  int value_y = value_top + (value_max_h - value_h) / 2;
+  GRect value_rect = GRect(value_left, value_y, final_w, value_h);
+  prv_draw_tile_value(ctx, tile, value_rect, value_font,
+                      GTextOverflowModeWordWrap, GTextAlignmentCenter);
 }
 #else
 static void prv_draw_rect_tile(GContext *ctx, const TileRenderData *tile) {
-  int label_h = prv_label_height();
-
-  if (tile->content.size.w <= 0 || tile->content.size.h <= 0) {
+  GRect content = tile->content;
+  if (content.size.w <= 0 || content.size.h <= 0) {
     return;
   }
 
-  if (tile->content.size.h < label_h + 10) {
-    GFont value_font = prv_tile_font(tile->type, tile->content.size.h, tile->content.size.w);
-    prv_draw_tile_value(ctx, tile, tile->content, value_font,
-                        GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter);
+  GFont label_font = prv_label_font(tile->type, content.size.w, content.size.h);
+  int label_h = prv_font_line_height(label_font) + 2;
+
+  if (content.size.h - label_h >= 10) {
+    GRect label_rect = GRect(content.origin.x, content.origin.y, content.size.w, label_h - 2);
+    graphics_draw_text(ctx, tile->label, label_font, label_rect,
+                       GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+
+    int value_y = content.origin.y + label_h;
+    int value_h = content.size.h - label_h;
+    GRect value_rect = GRect(content.origin.x, value_y, content.size.w, value_h);
+    GFont value_font = prv_tile_value_font(tile, content.size.w, value_h);
+    prv_draw_tile_value(ctx, tile, value_rect, value_font,
+                        GTextOverflowModeWordWrap, GTextAlignmentCenter);
     return;
   }
 
-  GRect label_rect = GRect(tile->content.origin.x, tile->content.origin.y,
-                           tile->content.size.w, label_h - 2);
-  graphics_draw_text(ctx, tile->label, s_font_label, label_rect,
-                     GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
-
-  int value_y = tile->content.origin.y + label_h;
-  int value_h = tile->content.size.h - label_h;
-  GRect value_rect = GRect(tile->content.origin.x, value_y, tile->content.size.w, value_h);
-  GFont value_font = prv_tile_font(tile->type, value_h, tile->content.size.w);
-  prv_draw_tile_value(ctx, tile, value_rect, value_font,
-                      GTextOverflowModeWordWrap, GTextAlignmentCenter);
+  GFont value_font = prv_tile_value_font(tile, content.size.w, content.size.h);
+  prv_draw_tile_value(ctx, tile, content, value_font,
+                      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter);
 }
 #endif
 
@@ -1179,12 +1560,92 @@ static void prv_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
 
-  s_font_label = fonts_get_system_font(
-      prv_use_large_label_font() ? FONT_KEY_GOTHIC_18_BOLD : FONT_KEY_GOTHIC_14);
-  s_umbrella_black = gbitmap_create_with_resource(RESOURCE_ID_ICON_UMBRELLA);
-  s_umbrella_white = gbitmap_create_with_resource(RESOURCE_ID_ICON_UMBRELLA_WHITE);
   s_bluetooth_black = gbitmap_create_with_resource(RESOURCE_ID_ICON_BLUETOOTH);
   s_bluetooth_white = gbitmap_create_with_resource(RESOURCE_ID_ICON_BLUETOOTH_WHITE);
+  s_heart_black = gbitmap_create_with_resource(RESOURCE_ID_ICON_HEART_BLACK);
+  s_heart_white = gbitmap_create_with_resource(RESOURCE_ID_ICON_HEART);
+  s_foot_black = gbitmap_create_with_resource(RESOURCE_ID_ICON_FOOT_BLACK);
+  s_foot_white = gbitmap_create_with_resource(RESOURCE_ID_ICON_FOOT);
+  s_battery_30_black = gbitmap_create_with_resource(RESOURCE_ID_ICON_BATTERY_30_BLACK);
+  s_battery_30_white = gbitmap_create_with_resource(RESOURCE_ID_ICON_BATTERY_30);
+  s_battery_50_black = gbitmap_create_with_resource(RESOURCE_ID_ICON_BATTERY_50_BLACK);
+  s_battery_50_white = gbitmap_create_with_resource(RESOURCE_ID_ICON_BATTERY_50);
+  s_battery_80_black = gbitmap_create_with_resource(RESOURCE_ID_ICON_BATTERY_80_BLACK);
+  s_battery_80_white = gbitmap_create_with_resource(RESOURCE_ID_ICON_BATTERY_80);
+  s_battery_full_black = gbitmap_create_with_resource(RESOURCE_ID_ICON_BATTERY_FULL_BLACK);
+  s_battery_full_white = gbitmap_create_with_resource(RESOURCE_ID_ICON_BATTERY_FULL);
+  s_battery_charging_empty_black =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_BATTERY_CHARGING_EMPTY_BLACK);
+  s_battery_charging_empty_white =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_BATTERY_CHARGING_EMPTY);
+  s_battery_charging_full_black =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_BATTERY_CHARGING_FULL_BLACK);
+  s_battery_charging_full_white =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_BATTERY_CHARGING_FULL);
+  s_weather_cloud_falling_black =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_CLOUD_FALLING_BLACK);
+  s_weather_cloud_falling_white =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_CLOUD_FALLING);
+  s_weather_cloudy_black =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_CLOUDY_BLACK);
+  s_weather_cloudy_white =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_CLOUDY);
+  s_weather_foggy_black =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_FOGGY_BLACK);
+  s_weather_foggy_white =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_FOGGY);
+  s_weather_partly_cloudy_black =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_PARTLY_CLOUDY_BLACK);
+  s_weather_partly_cloudy_white =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_PARTLY_CLOUDY);
+  s_weather_rainy_black =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_RAINY_BLACK);
+  s_weather_rainy_white =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_RAINY);
+  s_weather_snowy_black =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_SNOWY_BLACK);
+  s_weather_snowy_white =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_SNOWY);
+  s_weather_sunny_black =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_SUNNY_BLACK);
+  s_weather_sunny_white =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_SUNNY);
+  s_weather_thundery_black =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_THUNDERY_BLACK);
+  s_weather_thundery_white =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_THUNDERY);
+  s_weather_2x_cloud_falling_black =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_2X_CLOUD_FALLING_BLACK);
+  s_weather_2x_cloud_falling_white =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_2X_CLOUD_FALLING);
+  s_weather_2x_cloudy_black =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_2X_CLOUDY_BLACK);
+  s_weather_2x_cloudy_white =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_2X_CLOUDY);
+  s_weather_2x_foggy_black =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_2X_FOGGY_BLACK);
+  s_weather_2x_foggy_white =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_2X_FOGGY);
+  s_weather_2x_partly_cloudy_black =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_2X_PARTLY_CLOUDY_BLACK);
+  s_weather_2x_partly_cloudy_white =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_2X_PARTLY_CLOUDY);
+  s_weather_2x_rainy_black =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_2X_RAINY_BLACK);
+  s_weather_2x_rainy_white =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_2X_RAINY);
+  s_weather_2x_snowy_black =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_2X_SNOWY_BLACK);
+  s_weather_2x_snowy_white =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_2X_SNOWY);
+  s_weather_2x_sunny_black =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_2X_SUNNY_BLACK);
+  s_weather_2x_sunny_white =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_2X_SUNNY);
+  s_weather_2x_thundery_black =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_2X_THUNDERY_BLACK);
+  s_weather_2x_thundery_white =
+      gbitmap_create_with_resource(RESOURCE_ID_ICON_WEATHER_2X_THUNDERY);
 
   s_canvas_layer = layer_create(bounds);
   layer_set_update_proc(s_canvas_layer, prv_canvas_update_proc);
@@ -1192,14 +1653,6 @@ static void prv_window_load(Window *window) {
 }
 
 static void prv_window_unload(Window *window) {
-  if (s_umbrella_black) {
-    gbitmap_destroy(s_umbrella_black);
-    s_umbrella_black = NULL;
-  }
-  if (s_umbrella_white) {
-    gbitmap_destroy(s_umbrella_white);
-    s_umbrella_white = NULL;
-  }
   if (s_bluetooth_black) {
     gbitmap_destroy(s_bluetooth_black);
     s_bluetooth_black = NULL;
@@ -1207,6 +1660,198 @@ static void prv_window_unload(Window *window) {
   if (s_bluetooth_white) {
     gbitmap_destroy(s_bluetooth_white);
     s_bluetooth_white = NULL;
+  }
+  if (s_heart_black) {
+    gbitmap_destroy(s_heart_black);
+    s_heart_black = NULL;
+  }
+  if (s_heart_white) {
+    gbitmap_destroy(s_heart_white);
+    s_heart_white = NULL;
+  }
+  if (s_foot_black) {
+    gbitmap_destroy(s_foot_black);
+    s_foot_black = NULL;
+  }
+  if (s_foot_white) {
+    gbitmap_destroy(s_foot_white);
+    s_foot_white = NULL;
+  }
+  if (s_battery_30_black) {
+    gbitmap_destroy(s_battery_30_black);
+    s_battery_30_black = NULL;
+  }
+  if (s_battery_30_white) {
+    gbitmap_destroy(s_battery_30_white);
+    s_battery_30_white = NULL;
+  }
+  if (s_battery_50_black) {
+    gbitmap_destroy(s_battery_50_black);
+    s_battery_50_black = NULL;
+  }
+  if (s_battery_50_white) {
+    gbitmap_destroy(s_battery_50_white);
+    s_battery_50_white = NULL;
+  }
+  if (s_battery_80_black) {
+    gbitmap_destroy(s_battery_80_black);
+    s_battery_80_black = NULL;
+  }
+  if (s_battery_80_white) {
+    gbitmap_destroy(s_battery_80_white);
+    s_battery_80_white = NULL;
+  }
+  if (s_battery_full_black) {
+    gbitmap_destroy(s_battery_full_black);
+    s_battery_full_black = NULL;
+  }
+  if (s_battery_full_white) {
+    gbitmap_destroy(s_battery_full_white);
+    s_battery_full_white = NULL;
+  }
+  if (s_battery_charging_empty_black) {
+    gbitmap_destroy(s_battery_charging_empty_black);
+    s_battery_charging_empty_black = NULL;
+  }
+  if (s_battery_charging_empty_white) {
+    gbitmap_destroy(s_battery_charging_empty_white);
+    s_battery_charging_empty_white = NULL;
+  }
+  if (s_battery_charging_full_black) {
+    gbitmap_destroy(s_battery_charging_full_black);
+    s_battery_charging_full_black = NULL;
+  }
+  if (s_battery_charging_full_white) {
+    gbitmap_destroy(s_battery_charging_full_white);
+    s_battery_charging_full_white = NULL;
+  }
+  if (s_weather_cloud_falling_black) {
+    gbitmap_destroy(s_weather_cloud_falling_black);
+    s_weather_cloud_falling_black = NULL;
+  }
+  if (s_weather_cloud_falling_white) {
+    gbitmap_destroy(s_weather_cloud_falling_white);
+    s_weather_cloud_falling_white = NULL;
+  }
+  if (s_weather_cloudy_black) {
+    gbitmap_destroy(s_weather_cloudy_black);
+    s_weather_cloudy_black = NULL;
+  }
+  if (s_weather_cloudy_white) {
+    gbitmap_destroy(s_weather_cloudy_white);
+    s_weather_cloudy_white = NULL;
+  }
+  if (s_weather_foggy_black) {
+    gbitmap_destroy(s_weather_foggy_black);
+    s_weather_foggy_black = NULL;
+  }
+  if (s_weather_foggy_white) {
+    gbitmap_destroy(s_weather_foggy_white);
+    s_weather_foggy_white = NULL;
+  }
+  if (s_weather_partly_cloudy_black) {
+    gbitmap_destroy(s_weather_partly_cloudy_black);
+    s_weather_partly_cloudy_black = NULL;
+  }
+  if (s_weather_partly_cloudy_white) {
+    gbitmap_destroy(s_weather_partly_cloudy_white);
+    s_weather_partly_cloudy_white = NULL;
+  }
+  if (s_weather_rainy_black) {
+    gbitmap_destroy(s_weather_rainy_black);
+    s_weather_rainy_black = NULL;
+  }
+  if (s_weather_rainy_white) {
+    gbitmap_destroy(s_weather_rainy_white);
+    s_weather_rainy_white = NULL;
+  }
+  if (s_weather_snowy_black) {
+    gbitmap_destroy(s_weather_snowy_black);
+    s_weather_snowy_black = NULL;
+  }
+  if (s_weather_snowy_white) {
+    gbitmap_destroy(s_weather_snowy_white);
+    s_weather_snowy_white = NULL;
+  }
+  if (s_weather_sunny_black) {
+    gbitmap_destroy(s_weather_sunny_black);
+    s_weather_sunny_black = NULL;
+  }
+  if (s_weather_sunny_white) {
+    gbitmap_destroy(s_weather_sunny_white);
+    s_weather_sunny_white = NULL;
+  }
+  if (s_weather_thundery_black) {
+    gbitmap_destroy(s_weather_thundery_black);
+    s_weather_thundery_black = NULL;
+  }
+  if (s_weather_thundery_white) {
+    gbitmap_destroy(s_weather_thundery_white);
+    s_weather_thundery_white = NULL;
+  }
+  if (s_weather_2x_cloud_falling_black) {
+    gbitmap_destroy(s_weather_2x_cloud_falling_black);
+    s_weather_2x_cloud_falling_black = NULL;
+  }
+  if (s_weather_2x_cloud_falling_white) {
+    gbitmap_destroy(s_weather_2x_cloud_falling_white);
+    s_weather_2x_cloud_falling_white = NULL;
+  }
+  if (s_weather_2x_cloudy_black) {
+    gbitmap_destroy(s_weather_2x_cloudy_black);
+    s_weather_2x_cloudy_black = NULL;
+  }
+  if (s_weather_2x_cloudy_white) {
+    gbitmap_destroy(s_weather_2x_cloudy_white);
+    s_weather_2x_cloudy_white = NULL;
+  }
+  if (s_weather_2x_foggy_black) {
+    gbitmap_destroy(s_weather_2x_foggy_black);
+    s_weather_2x_foggy_black = NULL;
+  }
+  if (s_weather_2x_foggy_white) {
+    gbitmap_destroy(s_weather_2x_foggy_white);
+    s_weather_2x_foggy_white = NULL;
+  }
+  if (s_weather_2x_partly_cloudy_black) {
+    gbitmap_destroy(s_weather_2x_partly_cloudy_black);
+    s_weather_2x_partly_cloudy_black = NULL;
+  }
+  if (s_weather_2x_partly_cloudy_white) {
+    gbitmap_destroy(s_weather_2x_partly_cloudy_white);
+    s_weather_2x_partly_cloudy_white = NULL;
+  }
+  if (s_weather_2x_rainy_black) {
+    gbitmap_destroy(s_weather_2x_rainy_black);
+    s_weather_2x_rainy_black = NULL;
+  }
+  if (s_weather_2x_rainy_white) {
+    gbitmap_destroy(s_weather_2x_rainy_white);
+    s_weather_2x_rainy_white = NULL;
+  }
+  if (s_weather_2x_snowy_black) {
+    gbitmap_destroy(s_weather_2x_snowy_black);
+    s_weather_2x_snowy_black = NULL;
+  }
+  if (s_weather_2x_snowy_white) {
+    gbitmap_destroy(s_weather_2x_snowy_white);
+    s_weather_2x_snowy_white = NULL;
+  }
+  if (s_weather_2x_sunny_black) {
+    gbitmap_destroy(s_weather_2x_sunny_black);
+    s_weather_2x_sunny_black = NULL;
+  }
+  if (s_weather_2x_sunny_white) {
+    gbitmap_destroy(s_weather_2x_sunny_white);
+    s_weather_2x_sunny_white = NULL;
+  }
+  if (s_weather_2x_thundery_black) {
+    gbitmap_destroy(s_weather_2x_thundery_black);
+    s_weather_2x_thundery_black = NULL;
+  }
+  if (s_weather_2x_thundery_white) {
+    gbitmap_destroy(s_weather_2x_thundery_white);
+    s_weather_2x_thundery_white = NULL;
   }
   layer_destroy(s_canvas_layer);
   s_canvas_layer = NULL;
