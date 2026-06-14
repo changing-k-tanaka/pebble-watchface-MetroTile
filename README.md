@@ -8,15 +8,15 @@ MetroTile - Pebble Appstore https://apps.repebble.com/metrotile_1491156b8f6f46b1
 
 ## Screenshots
 
-| Emery (Pebble Time 2) | Gabbro (Pebble Round 2) | Aplite (Pebble Classic) |
-|:---:|:---:|:---:|
-| ![Emery](market/screenshot/pebble_emery.png) | ![Gabbro](market/screenshot/pebble_gabbro.png) | ![Aplite](market/screenshot/pebble_aplite.png) |
+|               Emery (Pebble Time 2)               |               Gabbro (Pebble Round 2)               |               Aplite (Pebble Classic)               |
+|:-------------------------------------------------:|:---------------------------------------------------:|:---------------------------------------------------:|
+| ![Emery](market/screenshot/ver2/pebble_emery.png) | ![Gabbro](market/screenshot/ver2/pebble_gabbro.png) | ![Aplite](market/screenshot/ver2/pebble_aplite.png) |
 
 ### Color Presets
 
-| Default | Nishikigoi | Evangelion | Moby Dick |
-|:---:|:---:|:---:|:---:|
-| ![Default](market/screenshot/pebble_emery.png) | ![Nishikigoi](market/screenshot/pebble_emery_nishikigoi.png) | ![EVA](market/screenshot/pebble_emery_eva.png) | ![Moby Dick](market/screenshot/pebble_emery_moby_dick.png) |
+|                       Default                       |                            Nishikigoi                             |                     Evangelion                      |                            Moby Dick                            |
+|:---------------------------------------------------:|:-----------------------------------------------------------------:|:---------------------------------------------------:|:---------------------------------------------------------------:|
+| ![Default](market/screenshot/ver2/pebble_emery.png) | ![Nishikigoi](market/screenshot/ver2/pebble_emery_nishikigoi.png) | ![EVA](market/screenshot/ver2/pebble_emery_eva.png) | ![Moby Dick](market/screenshot/ver2/pebble_emery_moby_dick.png) |
 
 ## Features
 
