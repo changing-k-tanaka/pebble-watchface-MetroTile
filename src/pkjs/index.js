@@ -723,7 +723,9 @@ function buildConfigHTML(settings) {
   h.push('.tt{font-size:13px;font-weight:bold;color:#aaa;margin-bottom:8px}');
   h.push('.sub{font-size:12px;line-height:1.45;color:#aaa;margin-bottom:10px}');
   h.push('.pv{display:grid;grid-template-columns:1fr 1fr;gap:4px}');
-  h.push('.pt{min-height:78px;padding:8px;border-radius:3px;display:flex;flex-direction:column;justify-content:space-between}');
+  h.push('.pt{min-height:78px;padding:8px;border-radius:3px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;position:relative;outline:none}');
+  h.push('.pt:focus{box-shadow:0 0 0 2px rgba(255,255,255,.55)}');
+  h.push('.pt::after{content:"Edit";position:absolute;right:8px;bottom:8px;font-size:10px;letter-spacing:.06em;opacity:.72}');
   h.push('.pl{font-size:11px;font-weight:bold;letter-spacing:.04em}');
   h.push('.pvw{font-size:22px;font-weight:bold;line-height:1}');
   h.push('textarea{width:100%;min-height:168px;background:#2a2a2a;color:#fff;border:1px solid #555;padding:8px;border-radius:3px;margin-bottom:10px;font-size:12px;font-family:monospace;resize:vertical}');
@@ -731,10 +733,17 @@ function buildConfigHTML(settings) {
   h.push('input{width:100%;background:#2a2a2a;color:#fff;border:1px solid #555;padding:8px;border-radius:3px;margin-bottom:10px;font-size:13px}');
   h.push('.lbl{font-size:11px;color:#888;margin-bottom:4px}');
   h.push('.sg{display:flex;flex-wrap:nowrap;gap:4px;margin-bottom:10px;background:#111;padding:6px;border-radius:3px;cursor:pointer;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}');
-  h.push('i{display:inline-block;flex:0 0 auto;width:40px;height:40px;border-radius:2px;border:2px solid transparent;font-style:normal}');
-  h.push('i.x{border-color:#fff}');
+  h.push('i{display:inline-block;flex:0 0 auto;width:40px;height:40px;border-radius:2px;border:2px solid transparent;font-style:normal;box-shadow:none}');
+  h.push('i.x{border-color:#fff;box-shadow:0 0 0 2px #000,0 0 0 4px #fff}');
   h.push('.hint{font-size:12px;line-height:1.4;color:#aaa;margin-top:2px}');
   h.push('.rowbtn{width:100%;background:#444;color:#fff;border:none;padding:10px;border-radius:4px;font-size:13px;cursor:pointer;margin-bottom:8px}');
+  h.push('.mh{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}');
+  h.push('.mc{font-size:16px;font-weight:bold;color:#9ecfff}');
+  h.push('.ma{display:flex;align-items:center;gap:12px}');
+  h.push('.mx{width:auto;background:transparent;border:1px solid #555;color:#fff;padding:6px 10px;margin:0}');
+  h.push('.mo{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:flex-end;justify-content:center;padding:12px;z-index:30}');
+  h.push('.mo.o{display:flex}');
+  h.push('.md{width:100%;max-width:520px;max-height:calc(100vh - 24px);overflow:auto;background:#1d1d1d;border:1px solid #333;border-radius:10px;padding:12px 12px 16px;box-shadow:0 12px 28px rgba(0,0,0,.45)}');
   h.push('#sb{position:fixed;left:0;right:0;bottom:0;width:100%;background:#0078d7;color:#fff;border:none;padding:14px;font-size:16px;cursor:pointer;margin:0;border-radius:0;box-shadow:0 -2px 6px rgba(0,0,0,.4);z-index:10}');
   h.push('</style></head><body>');
   h.push('<h1>METRO UI</h1>');
@@ -745,6 +754,8 @@ function buildConfigHTML(settings) {
   h.push('<script>');
   h.push('var S=' + JSON.stringify(settings) + ';');
   h.push('var AP=' + JSON.stringify(selectedPresetId) + ';');
+  h.push('var MI=-1;');
+  h.push('var MS=null;');
   h.push('var PR={};');
   h.push('var PN=["","TIME","DATE","DOW","YEAR","BPM","STEPS","WX","BAT","TEMP","RAIN","WX"];');
   h.push('var PV=["","23:13","04/09","Thu","2026","72","8342","Cloudy","\\u26A180%","15\\u00b0C","20%","\\u2601"];');
@@ -761,7 +772,7 @@ function buildConfigHTML(settings) {
   h.push("function G(eid,gid,sel){var d=document.createElement('div');d.className='sg';d.id='sg_'+gid;d.dataset.gid=gid;C.forEach(function(c){var i=document.createElement('i');i.style.background=c.s;i.dataset.a=c.a;if(c.a===sel)i.className='x';d.appendChild(i)});document.getElementById(eid).appendChild(d);}");
 
   // イベント委譲: グリッド上のクリックをまとめて処理
-  h.push("document.addEventListener('click',function(e){var t=e.target,g=t.parentNode;if(!t.dataset||!t.dataset.a||!g.dataset||!g.dataset.gid)return;var p=g.querySelector('.x');if(p)p.className='';t.className='x';var pt=g.dataset.gid.split('_');st(+pt[0].slice(1),pt[1],+t.dataset.a);});");
+  h.push("document.addEventListener('click',function(e){var t=e.target,g=t.parentNode;if(!t.dataset||!t.dataset.a||!g.dataset||!g.dataset.gid)return;var p=g.querySelector('.x');if(p)p.className='';t.className='x';var pt=g.dataset.gid.split('_');if(pt[0]==='m'){if(MI>=0)st(MI,pt[1],+t.dataset.a);return;}st(+pt[0].slice(1),pt[1],+t.dataset.a);});");
 
   // タイプ変更時のデフォルト色 [bg, fg] (カラー機 / B&W機)
   h.push('var TC=' + JSON.stringify(tileColors) + ';');
@@ -776,16 +787,21 @@ function buildConfigHTML(settings) {
   h.push('function rc(a){var r=(a>>4)&3,g=(a>>2)&3,b=a&3;return "rgb("+(r*85)+","+(g*85)+","+(b*85)+")";}');
   h.push('function rp(){for(var i=0;i<6;i++){var t=S.tiles[i],e=document.getElementById("pv"+i);if(!e)continue;e.style.background=rc(t.bg);e.style.color=rc(t.fg);var l=e.querySelector(".pl"),v=e.querySelector(".pvw");if(l)l.textContent=PN[t.type]||"";if(v)v.textContent=PV[t.type]||"";}}');
   h.push('function sx(){var x=document.getElementById("json");if(!x)return;var d={tiles:[]};for(var i=0;i<6;i++)d.tiles.push({bg:S.tiles[i].bg,fg:S.tiles[i].fg});x.value=JSON.stringify(d,null,2);}');
-  h.push('function ix(){var x=document.getElementById("json");if(!x)return;try{var d=JSON.parse(x.value),p=document.getElementById("preset");if(!d||!d.tiles||d.tiles.length!==6)throw new Error("tiles");for(var i=0;i<6;i++){var s=d.tiles[i]||{};if(typeof s.bg==="undefined"||typeof s.fg==="undefined")throw new Error("tile"+i);S.tiles[i].bg=+s.bg;S.tiles[i].fg=+s.fg;ec(S.tiles[i],"bg");rt(i)}if(p)p.value="custom";AP="custom";rp();sx();}catch(err){alert("Invalid JSON format");}}');
-  h.push('function st(i,k,v){S.tiles[i][k]=v;ec(S.tiles[i],k);rt(i);rp();sx();var pr=document.getElementById("preset");if(pr)pr.value="custom";AP="custom";}');
+  h.push('function ix(){var x=document.getElementById("json");if(!x)return;try{var d=JSON.parse(x.value),p=document.getElementById("preset");if(!d||!d.tiles||d.tiles.length!==6)throw new Error("tiles");for(var i=0;i<6;i++){var s=d.tiles[i]||{};if(typeof s.bg==="undefined"||typeof s.fg==="undefined")throw new Error("tile"+i);S.tiles[i].bg=+s.bg;S.tiles[i].fg=+s.fg;ec(S.tiles[i],"bg");rt(i)}if(p)p.value="custom";AP="custom";rp();sx();if(MI>=0)mm();}catch(err){alert("Invalid JSON format");}}');
+  h.push('function mm(){if(MI<0)return;var t=S.tiles[MI],s=document.getElementById("mt"),n=document.getElementById("mn");if(s)s.value=t.type;if(n)n.textContent="Tile "+(MI+1);ug("sg_m_bg",t.bg);ug("sg_m_fg",t.fg);rt(MI);rp();}');
+  h.push('function om(i){MI=i;MS={type:S.tiles[i].type,bg:S.tiles[i].bg,fg:S.tiles[i].fg};var m=document.getElementById("mo");if(!m)return;mm();m.className="mo o";}');
+  h.push('function cm(){var m=document.getElementById("mo");if(m)m.className="mo";MI=-1;MS=null;}');
+  h.push('function xm(){if(MI<0||!MS){cm();return;}S.tiles[MI].type=MS.type;S.tiles[MI].bg=MS.bg;S.tiles[MI].fg=MS.fg;rt(MI);rp();sx();cm();}');
+  h.push('function st(i,k,v){S.tiles[i][k]=v;ec(S.tiles[i],k);rt(i);rp();sx();if(MI===i)mm();var pr=document.getElementById("preset");if(pr)pr.value="custom";AP="custom";}');
 
   // タイプ選択変更ハンドラ: 新しいタイプのデフォルト色を S に反映しグリッドも更新
-  h.push('function ct(idx,v){v=+v;var d=TC[v];if(d){S.tiles[idx].bg=d[0];S.tiles[idx].fg=d[1];}S.tiles[idx].type=v;ec(S.tiles[idx],"type");rt(idx);rp();sx();var pr=document.getElementById("preset");if(pr)pr.value="custom";AP="custom";}');
-  h.push('function cp(v){if(v==="custom"){AP="custom";rp();sx();return;}var p=PR[v];if(!p)return;AP=v;for(var i=0;i<6;i++){S.tiles[i].bg=p.tiles[i].bg;S.tiles[i].fg=p.tiles[i].fg;ec(S.tiles[i],"type");rt(i)}rp();sx();}');
+  h.push('function ct(idx,v){S.tiles[idx].type=+v;rt(idx);rp();sx();if(MI===idx)mm();var pr=document.getElementById("preset");if(pr)pr.value="custom";AP="custom";}');
+  h.push('function cp(v){if(v==="custom"){AP="custom";rp();sx();if(MI>=0)mm();return;}var p=PR[v];if(!p)return;AP=v;for(var i=0;i<6;i++){S.tiles[i].bg=p.tiles[i].bg;S.tiles[i].fg=p.tiles[i].fg;ec(S.tiles[i],"type");rt(i)}rp();sx();if(MI>=0)mm();}');
 
   // 保存: エミュレータ(return_to)と実機(pebblejs://close#)を自動判別
   h.push('function save(){');
-  h.push('for(var i=0;i<6;i++){S.tiles[i].type=+document.getElementById("tt"+i).value;ec(S.tiles[i],"type")}');
+  h.push('if(MI>=0)mm();');
+  h.push('for(var i=0;i<6;i++)ec(S.tiles[i],"type");');
   h.push('S.dateFormat=+document.getElementById("df").value;');
   h.push('S.tempUnit=+document.getElementById("tu").value;');
   h.push('S.bluetoothDisconnectVibe=!!document.getElementById("bdv").checked;');
@@ -795,14 +811,15 @@ function buildConfigHTML(settings) {
   h.push('var m=location.href.match(/[?&]return_to=([^&]+)/);');
   h.push('location.href=m?decodeURIComponent(m[1])+c:"pebblejs://close#"+c;');
   h.push('}');
+  h.push('document.addEventListener("keydown",function(e){if(e.key==="Escape")xm();});');
   h.push('<\/script>');
 
   h.push('<div class="tile">');
-  h.push('<div class="tt">Preview</div>');
+  h.push('<div class="tt">Settings & Preview (Tap to change)</div>');
   // h.push('<div class="sub">タイル色、文字色、表示内容の組み合わせをこの場で確認できます。</div>');
   h.push('<div class="pv">');
   for (var previewIdx = 0; previewIdx < 6; previewIdx++) {
-    h.push('<div class="pt" id="pv' + previewIdx + '"><div class="pl"></div><div class="pvw"></div></div>');
+    h.push('<div class="pt" id="pv' + previewIdx + '" role="button" tabindex="0" onclick="om(' + previewIdx + ')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();om(' + previewIdx + ')}"><div class="pl"></div><div class="pvw"></div></div>');
   }
   h.push('</div>');
   h.push('<script>rp()<\/script>');
@@ -820,42 +837,26 @@ function buildConfigHTML(settings) {
   h.push('</select>');
   h.push('</div>');
 
-  // --- タイル設定セクション ---
-  for (var i = 0; i < 6; i++) {
-    var tile = settings.tiles[i];
-    h.push('<div class="tile">');
-    h.push('<div class="tt">Tile ' + (i + 1) + '</div>');
-
-    // 種別セレクト
-    // HR非対応機ではtype=5(Heart Rate)をtype=8(Battery)に強制変換して表示
-    var displayType = tile.type;
-    if (displayType === 5 && !hrDevice) displayType = 8;
-    h.push('<select id="tt' + i + '" onchange="ct(' + i + ',this.value)">');
-    for (var t = 0; t < TILE_TYPE_NAMES.length; t++) {
-      var isHROption = (t === 5);
-      var disabled = (isHROption && !hrDevice) ? ' disabled' : '';
-      var label = TILE_TYPE_NAMES[t] + (isHROption && !hrDevice ? ' (n/a)' : '');
-      var tsel = (displayType === t) ? ' selected' : '';
-      h.push('<option value="' + t + '"' + tsel + disabled + '>' + label + '</option>');
-    }
-    h.push('</select>');
-
-    // if (bw) {
-    //   h.push('<div class="hint">B&W model: only black, gray, and white are available.</div>');
-    // }
-
-    // 背景色グリッド（コンテナ div → スクリプトで埋める）
-    h.push('<div class="lbl">Background</div>');
-    h.push('<div id="bg' + i + '"></div>');
-    h.push('<script>G("bg' + i + '","t' + i + '_bg",' + tile.bg + ')<\/script>');
-
-    // 文字色グリッド
-    h.push('<div class="lbl">Text</div>');
-    h.push('<div id="fg' + i + '"></div>');
-    h.push('<script>G("fg' + i + '","t' + i + '_fg",' + tile.fg + ')<\/script>');
-
-    h.push('</div>');
+  h.push('<div id="mo" class="mo" onclick="if(event.target===this)xm()">');
+  h.push('<div class="md">');
+  h.push('<div class="mh"><div class="mc" id="mn">Tile 1</div><div class="ma"><button type="button" class="mx" onclick="xm()">Cancel</button><button type="button" class="mx" onclick="cm()">Close</button></div></div>');
+  h.push('<div class="lbl">Type</div>');
+  h.push('<select id="mt" onchange="if(MI>=0)ct(MI,this.value)">');
+  for (var modalType = 0; modalType < TILE_TYPE_NAMES.length; modalType++) {
+    var modalHROption = (modalType === 5);
+    var modalDisabled = (modalHROption && !hrDevice) ? ' disabled' : '';
+    var modalLabel = TILE_TYPE_NAMES[modalType] + (modalHROption && !hrDevice ? ' (n/a)' : '');
+    h.push('<option value="' + modalType + '"' + modalDisabled + '>' + modalLabel + '</option>');
   }
+  h.push('</select>');
+  h.push('<div class="lbl">Background</div>');
+  h.push('<div id="mbg"></div>');
+  h.push('<script>G("mbg","m_bg",S.tiles[0].bg)<\/script>');
+  h.push('<div class="lbl">Text</div>');
+  h.push('<div id="mfg"></div>');
+  h.push('<script>G("mfg","m_fg",S.tiles[0].fg)<\/script>');
+  h.push('</div>');
+  h.push('</div>');
 
   // --- フォーマット設定セクション ---
   var selDF  = settings.dateFormat || 0;
