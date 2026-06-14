@@ -196,6 +196,13 @@ static GBitmap *prv_foot_bitmap_for_fg(uint8_t fg_argb) {
   return prv_use_dark_icon(fg_argb) ? s_foot_white : s_foot_black;
 }
 
+// The precipitation icon is rendered beside the percentage text, so it should
+// match the value text color rather than contrast with the tile background.
+static GBitmap *prv_precipitation_bitmap_for_fg(uint8_t fg_argb) {
+  return prv_use_dark_icon(fg_argb) ? s_weather_cloud_falling_white
+                                    : s_weather_cloud_falling_black;
+}
+
 static GBitmap *prv_weather_icon_variant(uint8_t bg_argb, GBitmap *dark_bitmap,
                                          GBitmap *light_bitmap) {
   return prv_use_dark_icon(bg_argb) ? dark_bitmap : light_bitmap;
@@ -1080,8 +1087,7 @@ static void prv_draw_precipitation_value(GContext *ctx, GRect rect,
   GSize text_size = graphics_text_layout_get_content_size(
       value_buf, value_font, rect, GTextOverflowModeTrailingEllipsis,
       GTextAlignmentLeft);
-  GBitmap *bitmap = prv_use_dark_icon(bg_argb) ? s_weather_cloud_falling_black
-                                               : s_weather_cloud_falling_white;
+  GBitmap *bitmap = prv_precipitation_bitmap_for_fg(fg_argb);
   GRect icon_bounds = bitmap ? gbitmap_get_bounds(bitmap) : GRect(0, 0, 0, 0);
   int icon_h = icon_bounds.size.h;
   int icon_w = icon_bounds.size.w;
