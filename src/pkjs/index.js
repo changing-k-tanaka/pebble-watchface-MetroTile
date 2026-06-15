@@ -46,13 +46,6 @@ function base64EncodeUtf8(input) {
   return out;
 }
 
-function cityFromTimezone(timezone) {
-  var source = trimString(timezone);
-  if (!source) return '';
-  var parts = source.split('/');
-  return trimString(parts[parts.length - 1].replace(/_/g, ' '));
-}
-
 function sendWeather(temp, cond, city, precipitation) {
   Pebble.sendAppMessage(
     {
@@ -85,6 +78,24 @@ function wmoToCondition(code) {
 // WEATHER
 // ============================================================================
 
+// Reverse-geocode GPS coordinates to a city/locality name. Open-Meteo's
+// `timezone` field is an IANA zone identifier (e.g. "America/Los_Angeles"),
+// which is shared by an entire region (all of western Washington state, not
+// just LA) and is NOT a usable stand-in for the user's actual city.
+function reverseGeocodeCity(latitude, longitude, callback) {
+  var url = 'https://api.bigdatacloud.net/data/reverse-geocode-client' +
+    '?latitude=' + latitude + '&longitude=' + longitude + '&localityLanguage=en';
+  xhrGet(url, function(err, text) {
+    if (err) { callback(''); return; }
+    try {
+      var data = JSON.parse(text);
+      callback(trimString(data.locality) || trimString(data.city) || '');
+    } catch(ex) {
+      callback('');
+    }
+  });
+}
+
 function fetchWeather() {
   var raw = localStorage.getItem(SETTINGS_KEY);
   var parsed = raw ? JSON.parse(raw) : null;
@@ -104,7 +115,7 @@ function fetchWeather() {
         var data = JSON.parse(text);
         var temp = Math.round(data.current.temperature_2m);
         var cond = wmoToCondition(data.current.weather_code);
-        var city = trimString(cityLabel) || cityFromTimezone(data.timezone);
+        var city = trimString(cityLabel);
         var precipitation = -1;
         if (data.daily && data.daily.precipitation_probability_max &&
             data.daily.precipitation_probability_max.length > 0 &&
@@ -144,7 +155,11 @@ function fetchWeather() {
 
   navigator.geolocation.getCurrentPosition(
     function(pos) {
-      fetchForecast(pos.coords.latitude, pos.coords.longitude, '');
+      var latitude = pos.coords.latitude;
+      var longitude = pos.coords.longitude;
+      reverseGeocodeCity(latitude, longitude, function(city) {
+        fetchForecast(latitude, longitude, city);
+      });
     },
     function(err) { console.log('Geolocation error: ' + err.message); },
     { timeout: 15000, maximumAge: 300000 }
