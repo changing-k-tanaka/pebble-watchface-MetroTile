@@ -1,7 +1,7 @@
 {
   "name": "metrotile",
   "author": "changing-k-tanaka",
-  "version": "2.0.1",
+  "version": "2.1.1",
   "keywords": [
     "metrotile",
     "metro",
@@ -56,6 +56,7 @@
       "DATE_FORMAT",
       "TEMP_UNIT",
       "BLUETOOTH_DISCONNECT_VIBE",
+      "ICON_HIDDEN_MASK",
       "DEVICE_IS_BW",
       "DEVICE_HAS_HR",
       "REQUEST_DEVICE_CAPS"

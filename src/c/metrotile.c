@@ -19,7 +19,7 @@
 
 #define NUM_TILES            6
 #define TILE_GAP             4
-#define SETTINGS_VERSION     10
+#define SETTINGS_VERSION     11
 #define PERSIST_KEY_SETTINGS ((uint32_t)42)
 #define PERSIST_KEY_WEATHER  ((uint32_t)43)
 #define BW_LIGHT_GRAY_ARGB   (GColorLightGray.argb)
@@ -56,7 +56,8 @@ typedef struct __attribute__((packed)) {
   uint8_t    date_format;  // 0=MM/DD, 1=DD/MM
   uint8_t    temp_unit;    // 0=Celsius, 1=Fahrenheit
   uint8_t    bluetooth_disconnect_vibe;  // 0=OFF, 1=ON
-} Settings;  // 1 + 6*3 + 3 = 22 bytes
+  uint8_t    icon_hidden_mask;  // bit i = tile i's icon hidden (icon+value tiles only)
+} Settings;  // 1 + 6*3 + 4 = 23 bytes
 
 typedef struct __attribute__((packed)) {
   uint8_t    version;
@@ -90,6 +91,14 @@ typedef struct __attribute__((packed)) {
   uint8_t    bluetooth_disconnect_vibe;
   uint8_t    label_visible_mask;
 } LegacySettingsV9;
+
+typedef struct __attribute__((packed)) {
+  uint8_t    version;
+  TileConfig tiles[NUM_TILES];
+  uint8_t    date_format;
+  uint8_t    temp_unit;
+  uint8_t    bluetooth_disconnect_vibe;
+} LegacySettingsV10;
 
 typedef struct {
   int8_t temperature;
@@ -155,12 +164,14 @@ typedef struct {
   uint8_t bg_argb;
   uint8_t fg_argb;
   uint8_t type;
+  bool    icon_hidden;
 } TileRenderData;
 
 static const char *prv_tile_label(uint8_t type);
 static void prv_tile_value(uint8_t type, char *buf, size_t buf_size);
 static void prv_settings_save(void);
 static bool prv_is_weather_tile(uint8_t type);
+static bool prv_tile_has_icon_value(uint8_t type);
 
 // ============================================================================
 // HELPER: GColor from stored argb byte
@@ -412,8 +423,8 @@ static void prv_settings_load_defaults(void) {
 
 static void prv_settings_load(void) {
   if (persist_exists(PERSIST_KEY_SETTINGS)) {
-    // Read into the largest known on-disk layout (V9) so `n` reflects the
-    // actual stored size even though the current Settings struct is smaller.
+    // Read into the largest known on-disk layout (V9, same size as the
+    // current Settings struct) so `n` reflects the actual stored size.
     LegacySettingsV9 raw;
     int n = persist_read_data(PERSIST_KEY_SETTINGS, &raw, sizeof(raw));
 
@@ -423,19 +434,36 @@ static void prv_settings_load(void) {
       return;
     }
 
-    if (n == (int)sizeof(LegacySettingsV9) && raw.version == (SETTINGS_VERSION - 1)) {
+    if (n == (int)sizeof(LegacySettingsV10) && raw.version == (SETTINGS_VERSION - 1)) {
+      LegacySettingsV10 legacy;
+      memcpy(&legacy, &raw, sizeof(legacy));
+
+      memset(&s_settings, 0, sizeof(s_settings));
+      s_settings.version = SETTINGS_VERSION;
+      memcpy(s_settings.tiles, legacy.tiles, sizeof(legacy.tiles));
+      s_settings.date_format = legacy.date_format;
+      s_settings.temp_unit = legacy.temp_unit;
+      s_settings.bluetooth_disconnect_vibe = legacy.bluetooth_disconnect_vibe;
+      s_settings.icon_hidden_mask = 0;
+      prv_settings_sanitize();
+      prv_settings_save();
+      return;
+    }
+
+    if (n == (int)sizeof(LegacySettingsV9) && raw.version == (SETTINGS_VERSION - 2)) {
       memset(&s_settings, 0, sizeof(s_settings));
       s_settings.version = SETTINGS_VERSION;
       memcpy(s_settings.tiles, raw.tiles, sizeof(raw.tiles));
       s_settings.date_format = raw.date_format;
       s_settings.temp_unit = raw.temp_unit;
       s_settings.bluetooth_disconnect_vibe = raw.bluetooth_disconnect_vibe;
+      s_settings.icon_hidden_mask = 0;
       prv_settings_sanitize();
       prv_settings_save();
       return;
     }
 
-    if (n == (int)sizeof(LegacySettingsV8) && raw.version == (SETTINGS_VERSION - 2)) {
+    if (n == (int)sizeof(LegacySettingsV8) && raw.version == (SETTINGS_VERSION - 3)) {
       LegacySettingsV8 legacy;
       memcpy(&legacy, &raw, sizeof(legacy));
 
@@ -445,12 +473,13 @@ static void prv_settings_load(void) {
       s_settings.date_format = legacy.date_format;
       s_settings.temp_unit = legacy.temp_unit;
       s_settings.bluetooth_disconnect_vibe = legacy.bluetooth_disconnect_vibe;
+      s_settings.icon_hidden_mask = 0;
       prv_settings_sanitize();
       prv_settings_save();
       return;
     }
 
-    if (n == (int)sizeof(LegacySettingsV7) && raw.version == (SETTINGS_VERSION - 3)) {
+    if (n == (int)sizeof(LegacySettingsV7) && raw.version == (SETTINGS_VERSION - 4)) {
       LegacySettingsV7 legacy;
       memcpy(&legacy, &raw, sizeof(legacy));
 
@@ -460,12 +489,13 @@ static void prv_settings_load(void) {
       s_settings.date_format = legacy.date_format;
       s_settings.temp_unit = legacy.temp_unit;
       s_settings.bluetooth_disconnect_vibe = legacy.bluetooth_disconnect_vibe;
+      s_settings.icon_hidden_mask = 0;
       prv_settings_sanitize();
       prv_settings_save();
       return;
     }
 
-    if (n == (int)sizeof(LegacySettingsV6) && raw.version == (SETTINGS_VERSION - 4)) {
+    if (n == (int)sizeof(LegacySettingsV6) && raw.version == (SETTINGS_VERSION - 5)) {
       LegacySettingsV6 legacy;
       memcpy(&legacy, &raw, sizeof(legacy));
 
@@ -475,6 +505,7 @@ static void prv_settings_load(void) {
       s_settings.date_format = legacy.date_format;
       s_settings.temp_unit = legacy.temp_unit;
       s_settings.bluetooth_disconnect_vibe = 0;
+      s_settings.icon_hidden_mask = 0;
       prv_settings_sanitize();
       prv_settings_save();
       return;
@@ -673,6 +704,8 @@ static TileRenderData prv_make_tile_render_data(int idx, GRect bounds) {
     .fg_argb = tile->fg,
     .type = tile->type,
     .label = prv_tile_label(tile->type),
+    .icon_hidden = prv_tile_has_icon_value(tile->type) &&
+                   (s_settings.icon_hidden_mask & (1 << idx)) != 0,
   };
 
   data.content = GRect(data.bg.origin.x + PAD, data.bg.origin.y + PAD,
@@ -854,8 +887,12 @@ static GFont prv_label_font(uint8_t type, int avail_w, int avail_h) {
 }
 
 // Bitmap drawn alongside the value text for icon+text tiles (NULL if `tile`
-// has no icon).
+// has no icon, or its icon has been hidden via per-tile setting).
 static GBitmap *prv_tile_icon_bitmap(const TileRenderData *tile) {
+  if (tile->icon_hidden) {
+    return NULL;
+  }
+
   switch (tile->type) {
     case TILE_HEART_RATE:
       return prv_heart_bitmap_for_bg(tile->bg_argb);
@@ -905,6 +942,15 @@ static bool prv_is_weather_tile(uint8_t type) {
          type == TILE_TEMPERATURE ||
          type == TILE_PRECIPITATION ||
          type == TILE_WEATHER_ICON;
+}
+
+// Tile types that render as an icon next to the value text. Their icon can
+// be hidden via the per-tile "icon_hidden_mask" setting to grow the value font.
+static bool prv_tile_has_icon_value(uint8_t type) {
+  return type == TILE_HEART_RATE ||
+         type == TILE_STEPS ||
+         type == TILE_BATTERY ||
+         type == TILE_PRECIPITATION;
 }
 
 static bool prv_show_bluetooth_disconnected_value(uint8_t type) {
@@ -1171,6 +1217,13 @@ static void prv_draw_tile_value(GContext *ctx, const TileRenderData *tile,
                                 GRect rect, GFont value_font,
                                 GTextOverflowMode overflow,
                                 GTextAlignment alignment) {
+  // Icon suppressed via per-tile setting: draw the value text alone, filling
+  // the space the icon would otherwise have occupied.
+  if (tile->icon_hidden) {
+    graphics_draw_text(ctx, tile->value, value_font, rect, overflow, alignment, NULL);
+    return;
+  }
+
   if (tile->type == TILE_BATTERY) {
     prv_draw_battery_value(ctx, rect, tile->value, value_font, tile->bg_argb);
     return;
@@ -1490,6 +1543,7 @@ static bool prv_apply_settings_message(DictionaryIterator *iter) {
   Tuple *date_fmt_t  = dict_find(iter, MESSAGE_KEY_DATE_FORMAT);
   Tuple *temp_unit_t = dict_find(iter, MESSAGE_KEY_TEMP_UNIT);
   Tuple *bt_vibe_t   = dict_find(iter, MESSAGE_KEY_BLUETOOTH_DISCONNECT_VIBE);
+  Tuple *icon_hidden_t = dict_find(iter, MESSAGE_KEY_ICON_HIDDEN_MASK);
   if (date_fmt_t) {
     s_settings.date_format = (uint8_t)date_fmt_t->value->int32;
   }
@@ -1498,6 +1552,9 @@ static bool prv_apply_settings_message(DictionaryIterator *iter) {
   }
   if (bt_vibe_t) {
     s_settings.bluetooth_disconnect_vibe = (uint8_t)(bt_vibe_t->value->int32 ? 1 : 0);
+  }
+  if (icon_hidden_t) {
+    s_settings.icon_hidden_mask = (uint8_t)(icon_hidden_t->value->int32 & 0xFF);
   }
 
   prv_settings_sanitize();

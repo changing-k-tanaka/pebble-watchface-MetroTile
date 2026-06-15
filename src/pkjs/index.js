@@ -584,7 +584,7 @@ function normalizeSettings(raw) {
       if (!(fg >= 0xC0 && fg <= 0xFF)) fg = fallback[1];
     }
 
-    var tile = { type: type, bg: bg, fg: fg };
+    var tile = { type: type, bg: bg, fg: fg, iconHidden: !!(src && src.iconHidden) };
     ensureTileContrast(tile, colors);
     out.tiles.push(tile);
   }
@@ -683,6 +683,12 @@ function applyPresetToSettings(settings, bw, presetId) {
 // ============================================================================
 
 var TILE_TYPE_NAMES = ['None','Time','Date','Day of Week','Year','Heart Rate','Steps','Weather','Battery','Temperature','Precipitation','Weather(icon)'];
+
+// Tile types rendered as "icon + value" (Heart Rate, Steps, Battery, Precipitation).
+// These support the "Hide icon" option that frees up space for a larger value.
+function hasIconOption(type) {
+  return type === 5 || type === 6 || type === 8 || type === 10;
+}
 
 // Detect B&W watch (aplite / diorite)
 function isBW() {
@@ -797,16 +803,19 @@ function buildConfigHTML(settings) {
   // グリッドの選択スウォッチを差し替えるヘルパー
   h.push('function ug(gid,v){var g=document.getElementById(gid);if(!g)return;var p=g.querySelector(".x");if(p)p.className="";var ch=g.children;for(var s=0;s<ch.length;s++){if(+ch[s].dataset.a===v){ch[s].className="x";break;}}}');
 
+  // 「アイコンなし」設定を持つタイル種別 (Heart Rate, Steps, Battery, Precipitation)
+  h.push('function hio(t){return t===5||t===6||t===8||t===10;}');
+
   h.push('function ec(t,p){var d=TC[t.type]||TC[0];if(t.bg!==t.fg)return;if(p==="fg"){if(d[0]!==t.fg)t.bg=d[0];else if(d[1]!==t.fg)t.bg=d[1];else t.bg=(t.fg===255?192:255);}else{if(d[1]!==t.bg)t.fg=d[1];else if(d[0]!==t.bg)t.fg=d[0];else t.fg=(t.bg===255?192:255);}}');
   h.push('function rt(i){ug("sg_t"+i+"_bg",S.tiles[i].bg);ug("sg_t"+i+"_fg",S.tiles[i].fg)}');
   h.push('function rc(a){var r=(a>>4)&3,g=(a>>2)&3,b=a&3;return "rgb("+(r*85)+","+(g*85)+","+(b*85)+")";}');
   h.push('function rp(){for(var i=0;i<6;i++){var t=S.tiles[i],e=document.getElementById("pv"+i);if(!e)continue;e.style.background=rc(t.bg);e.style.color=rc(t.fg);var l=e.querySelector(".pl"),v=e.querySelector(".pvw");if(l)l.textContent=PN[t.type]||"";if(v)v.textContent=PV[t.type]||"";}}');
   h.push('function sx(){var x=document.getElementById("json");if(!x)return;var d={tiles:[]};for(var i=0;i<6;i++)d.tiles.push({bg:S.tiles[i].bg,fg:S.tiles[i].fg});x.value=JSON.stringify(d,null,2);}');
   h.push('function ix(){var x=document.getElementById("json");if(!x)return;try{var d=JSON.parse(x.value),p=document.getElementById("preset");if(!d||!d.tiles||d.tiles.length!==6)throw new Error("tiles");for(var i=0;i<6;i++){var s=d.tiles[i]||{};if(typeof s.bg==="undefined"||typeof s.fg==="undefined")throw new Error("tile"+i);S.tiles[i].bg=+s.bg;S.tiles[i].fg=+s.fg;ec(S.tiles[i],"bg");rt(i)}if(p)p.value="custom";AP="custom";rp();sx();if(MI>=0)mm();}catch(err){alert("Invalid JSON format");}}');
-  h.push('function mm(){if(MI<0)return;var t=S.tiles[MI],s=document.getElementById("mt"),n=document.getElementById("mn");if(s)s.value=t.type;if(n)n.textContent="Tile "+(MI+1);ug("sg_m_bg",t.bg);ug("sg_m_fg",t.fg);rt(MI);rp();}');
-  h.push('function om(i){MI=i;MS={type:S.tiles[i].type,bg:S.tiles[i].bg,fg:S.tiles[i].fg};var m=document.getElementById("mo");if(!m)return;mm();m.className="mo o";}');
+  h.push('function mm(){if(MI<0)return;var t=S.tiles[MI],s=document.getElementById("mt"),n=document.getElementById("mn");if(s)s.value=t.type;if(n)n.textContent="Tile "+(MI+1);ug("sg_m_bg",t.bg);ug("sg_m_fg",t.fg);var ih=document.getElementById("mih"),ir=document.getElementById("mih_row");if(ih)ih.checked=!!t.iconHidden;if(ir)ir.style.display=hio(t.type)?"":"none";rt(MI);rp();}');
+  h.push('function om(i){MI=i;MS={type:S.tiles[i].type,bg:S.tiles[i].bg,fg:S.tiles[i].fg,iconHidden:S.tiles[i].iconHidden};var m=document.getElementById("mo");if(!m)return;mm();m.className="mo o";}');
   h.push('function cm(){var m=document.getElementById("mo");if(m)m.className="mo";MI=-1;MS=null;}');
-  h.push('function xm(){if(MI<0||!MS){cm();return;}S.tiles[MI].type=MS.type;S.tiles[MI].bg=MS.bg;S.tiles[MI].fg=MS.fg;rt(MI);rp();sx();cm();}');
+  h.push('function xm(){if(MI<0||!MS){cm();return;}S.tiles[MI].type=MS.type;S.tiles[MI].bg=MS.bg;S.tiles[MI].fg=MS.fg;S.tiles[MI].iconHidden=MS.iconHidden;rt(MI);rp();sx();cm();}');
   h.push('function st(i,k,v){S.tiles[i][k]=v;ec(S.tiles[i],k);rt(i);rp();sx();if(MI===i)mm();var pr=document.getElementById("preset");if(pr)pr.value="custom";AP="custom";}');
 
   // タイプ選択変更ハンドラ: 新しいタイプのデフォルト色を S に反映しグリッドも更新
@@ -870,6 +879,13 @@ function buildConfigHTML(settings) {
   h.push('<div class="lbl">Text</div>');
   h.push('<div id="mfg"></div>');
   h.push('<script>G("mfg","m_fg",S.tiles[0].fg)<\/script>');
+  h.push('<div id="mih_row" style="display:none">');
+  h.push('<div class="lbl">Icon</div>');
+  h.push('<label class="hint" style="display:flex;align-items:center;gap:8px;margin-bottom:10px">');
+  h.push('<input id="mih" type="checkbox" style="width:auto;margin:0" onchange="if(MI>=0){S.tiles[MI].iconHidden=this.checked;sx();}">');
+  h.push('<span>Hide icon (show larger number)</span>');
+  h.push('</label>');
+  h.push('</div>');
   h.push('</div>');
   h.push('</div>');
 
@@ -957,8 +973,10 @@ function buildCompactConfigHTML(settings) {
     h.push('PR[' + JSON.stringify(presets[presetIdx].id) + ']=' + JSON.stringify(presets[presetIdx]) + ';');
   }
   h.push('function ec(t,p){var d=(' + JSON.stringify(defaultTileColors(bw)) + ')[t.type]||(' + JSON.stringify(defaultTileColors(bw)) + ')[0];if(t.bg!==t.fg)return;if(p==="fg"){if(d[0]!==t.fg)t.bg=d[0];else if(d[1]!==t.fg)t.bg=d[1];else t.bg=(t.fg===255?192:255);}else{if(d[1]!==t.bg)t.fg=d[1];else if(d[0]!==t.bg)t.fg=d[0];else t.fg=(t.bg===255?192:255);}}');
+  h.push('function hio(t){return t===5||t===6||t===8||t===10;}');
+  h.push('function tih(i,v){var r=document.getElementById("ihrow"+i);if(r)r.style.display=hio(+v)?"":"none";}');
   h.push('function applyPreset(v){AP=v;if(v==="custom")return;var p=PR[v];if(!p)return;for(var i=0;i<6;i++){S.tiles[i].bg=p.tiles[i].bg;S.tiles[i].fg=p.tiles[i].fg;ec(S.tiles[i],"type");document.getElementById("bg"+i).value=S.tiles[i].bg;document.getElementById("fg"+i).value=S.tiles[i].fg;}}');
-  h.push('function save(){for(var i=0;i<6;i++){S.tiles[i].type=+document.getElementById("tt"+i).value;S.tiles[i].bg=+document.getElementById("bg"+i).value;S.tiles[i].fg=+document.getElementById("fg"+i).value;ec(S.tiles[i],"type");}S.dateFormat=+document.getElementById("df").value;S.tempUnit=+document.getElementById("tu").value;S.bluetoothDisconnectVibe=(+document.getElementById("bdv").value)===1;S.weatherCity=(document.getElementById("wc").value||"").replace(/^\\s+|\\s+$/g,"");');
+  h.push('function save(){for(var i=0;i<6;i++){S.tiles[i].type=+document.getElementById("tt"+i).value;S.tiles[i].bg=+document.getElementById("bg"+i).value;S.tiles[i].fg=+document.getElementById("fg"+i).value;ec(S.tiles[i],"type");var ih=document.getElementById("ih"+i);S.tiles[i].iconHidden=ih?ih.checked:false;}S.dateFormat=+document.getElementById("df").value;S.tempUnit=+document.getElementById("tu").value;S.bluetoothDisconnectVibe=(+document.getElementById("bdv").value)===1;S.weatherCity=(document.getElementById("wc").value||"").replace(/^\\s+|\\s+$/g,"");');
   h.push(bw ? 'S.bwPreset=AP;' : 'S.colorPreset=AP;');
   h.push('var c=encodeURIComponent(JSON.stringify(S));var m=location.href.match(/[?&]return_to=([^&]+)/);location.href=m?decodeURIComponent(m[1])+c:"pebblejs://close#"+c;}');
   h.push('<\/script>');
@@ -978,7 +996,7 @@ function buildCompactConfigHTML(settings) {
     h.push('<div class="card">');
     h.push('<div class="ttl">Tile ' + (i + 1) + '</div>');
     h.push('<label class="lbl" for="tt' + i + '">Type</label>');
-    h.push('<select id="tt' + i + '" onchange="document.getElementById(\'preset\').value=\'custom\';AP=\'custom\'">');
+    h.push('<select id="tt' + i + '" onchange="document.getElementById(\'preset\').value=\'custom\';AP=\'custom\';tih(' + i + ',this.value)">');
     for (var t = 0; t < TILE_TYPE_NAMES.length; t++) {
       var isHROption = (t === 5);
       var disabled = (isHROption && !hrDevice) ? ' disabled' : '';
@@ -1003,6 +1021,12 @@ function buildCompactConfigHTML(settings) {
       h.push('<div><label class="lbl" for="bg' + i + '">Background</label><input id="bg' + i + '" type="number" min="192" max="255" value="' + tile.bg + '" oninput="document.getElementById(\'preset\').value=\'custom\';AP=\'custom\'"></div>');
       h.push('<div><label class="lbl" for="fg' + i + '">Text</label><input id="fg' + i + '" type="number" min="192" max="255" value="' + tile.fg + '" oninput="document.getElementById(\'preset\').value=\'custom\';AP=\'custom\'"></div>');
     }
+    h.push('</div>');
+    h.push('<div id="ihrow' + i + '" class="row" style="grid-template-columns:1fr;margin-top:8px;' + (hasIconOption(displayType) ? '' : 'display:none;') + '">');
+    h.push('<label class="lbl" for="ih' + i + '" style="display:flex;align-items:center;gap:8px;margin:0;color:#fff;font-size:13px">');
+    h.push('<input id="ih' + i + '" type="checkbox" style="width:auto;margin:0"' + (tile.iconHidden ? ' checked' : '') + '>');
+    h.push('<span>Hide icon (show larger number)</span>');
+    h.push('</label>');
     h.push('</div>');
     h.push('</div>');
   }
@@ -1165,6 +1189,12 @@ Pebble.addEventListener('webviewclosed', function(e) {
     msg['DATE_FORMAT'] = df;
     msg['TEMP_UNIT']   = settings.tempUnit   || 0;
     msg['BLUETOOTH_DISCONNECT_VIBE'] = settings.bluetoothDisconnectVibe ? 1 : 0;
+
+    var iconHiddenMask = 0;
+    for (var ihIdx = 0; ihIdx < 6; ihIdx++) {
+      if (settings.tiles[ihIdx].iconHidden) iconHiddenMask |= (1 << ihIdx);
+    }
+    msg['ICON_HIDDEN_MASK'] = iconHiddenMask;
     Pebble.sendAppMessage(msg,
       function() { console.log('Settings sent to watch'); },
       function(err) { console.log('Settings send failed: ' + JSON.stringify(err)); }
