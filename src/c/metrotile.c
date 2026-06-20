@@ -831,7 +831,7 @@ static const char *prv_label_default_text(uint8_t type) {
 static const char *prv_value_size_text(uint8_t type) {
   switch (type) {
     case TILE_TIME:          return "24:59";
-    case TILE_DATE:          return "12/31";
+    case TILE_DATE:          return "00/00";
     case TILE_DAY:           return "Thu";
     case TILE_YEAR:          return "2999";
     case TILE_HEART_RATE:    return "180";
